@@ -103,17 +103,22 @@ export function mapPermission(value: unknown): KeamananPermission {
   const raw = record(value);
   const nested = record(raw.data ?? raw.detail ?? raw.permission ?? raw.perijinan);
   const source = Object.keys(nested).length ? nested : raw;
+  const siswa = record(source.siswa ?? source.santri ?? source.student);
+  const detail = record(source.detail ?? source.info_perizinan ?? source.info_perijinan ?? source.perizinan);
+  const penjemputan = record(source.penjemputan ?? source.info_penjemputan);
+  const realisasi = record(source.realisasi ?? source.info_realisasi);
   const permissionId = numberValue(source.permission_id, source.permissionId, source.perijinan_id, source.izin_id, source.id);
   const perijinanId = numberValue(source.perijinan_id, source.permission_id, source.izin_id, source.permissionId, source.id);
-  const studentName = text(source.student_name, source.siswa, source.nama_siswa, source.nama_santri, source.name, "Santri");
-  const studentNis = text(source.student_nis, source.nis, source.no_induk, source.barcode);
-  const className = text(source.class_name, source.kelas, source.ruang_kelas);
+  const studentName = text(siswa.name, siswa.nama, source.student_name, source.nama_siswa, source.nama_santri, source.siswa_name, "Santri");
+  const studentNis = text(siswa.nis, siswa.no_induk, siswa.barcode, source.student_nis, source.nis, source.no_induk, source.barcode);
+  const className = text(siswa.kelas, siswa.class_name, siswa.ruang_kelas, source.class_name, source.kelas, source.ruang_kelas);
   const state = text(source.state, source.status);
   const stateLabel = text(source.state_label, source.status_label, source.status, source.state);
-  const reason = text(source.reason, source.keperluan, source.keterangan, source.description);
-  const dateStart = text(source.date_start, source.tgl_ijin, source.tgl_izin, source.tanggal_ijin, source.tanggal_izin);
-  const dateReturn = text(source.date_return, source.tgl_kembali, source.tanggal_kembali);
-  const lamaIzin = text(source.lama_ijin, source.lama_izin, source.duration, source.durasi);
+  const reason = text(detail.keperluan, detail.reason, source.reason, source.keperluan, source.keterangan, source.description);
+  const dateStart = text(detail.tgl_ijin, detail.tgl_izin, detail.tanggal_ijin, detail.tanggal_izin, source.date_start, source.tgl_ijin, source.tgl_izin, source.tanggal_ijin, source.tanggal_izin);
+  const dateReturn = text(detail.tgl_kembali, detail.tanggal_kembali, source.date_return, source.tgl_kembali, source.tanggal_kembali);
+  const lamaIzin = text(detail.durasi, detail.lama_ijin, detail.lama_izin, source.lama_ijin, source.lama_izin, source.duration, source.durasi);
+  const note = text(detail.catatan, detail.note, source.note, source.catatan);
   return {
     id: numberValue(source.id, permissionId),
     permissionId,
@@ -124,9 +129,9 @@ export function mapPermission(value: unknown): KeamananPermission {
     nis: studentNis,
     className,
     kelas: className,
-    kamar: text(source.kamar),
-    halaqoh: text(source.halaqoh),
-    musyrif: text(source.musyrif),
+    kamar: text(siswa.kamar, source.kamar),
+    halaqoh: text(siswa.halaqoh, siswa.halaqoh_name, source.halaqoh),
+    musyrif: text(siswa.musyrif, siswa.musyrif_name, source.musyrif),
     state,
     stateLabel,
     status: normalizeStatus(state, stateLabel),
@@ -140,13 +145,13 @@ export function mapPermission(value: unknown): KeamananPermission {
     lamaIzin,
     duration: lamaIzin,
     durasi: lamaIzin,
-    penjemput: text(source.penjemput),
-    jamPenjemputan: text(source.jam_penjemputan),
-    waktuKeluar: text(source.waktu_keluar),
-    waktuKembali: text(source.waktu_kembali),
-    terlambatHari: numberValue(source.terlambat_hari, source.late_days, source.terlambat),
-    note: text(source.note, source.catatan),
-    catatan: text(source.catatan, source.note),
+    penjemput: text(penjemputan.penjemput, penjemputan.nama_penjemput, source.penjemput),
+    jamPenjemputan: text(penjemputan.jam_penjemputan, penjemputan.jam, source.jam_penjemputan),
+    waktuKeluar: text(realisasi.waktu_keluar, source.waktu_keluar),
+    waktuKembali: text(realisasi.waktu_kembali, source.waktu_kembali),
+    terlambatHari: numberValue(realisasi.terlambat_hari, realisasi.late_days, source.terlambat_hari, source.late_days, source.terlambat),
+    note,
+    catatan: note,
     avatarUrl: text(source.avatar_url),
     raw: source,
   };

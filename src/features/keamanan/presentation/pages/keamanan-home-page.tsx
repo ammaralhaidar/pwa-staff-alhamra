@@ -7,9 +7,9 @@ import { isDemoFallbackEnabled } from "@/lib/helpers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fallbackKeamananDashboard } from "../../application/keamanan-fallback-data";
-import { isCheckoutPermission, isOutsidePermission } from "../../application/keamanan-mappers";
+import { getPerijinanId, isCheckoutPermission, isOutsidePermission } from "../../application/keamanan-mappers";
 import { mergeLocalPermissionState } from "../../application/keamanan-storage";
-import { useKeamananDashboard } from "../../application/keamanan-queries";
+import { useKeamananDashboard, useKeamananDetail } from "../../application/keamanan-queries";
 import type { KeamananPermission, KeamananTab, KeamananTimeRange } from "../../domain/keamanan-types";
 import { KeamananHeader } from "../components/keamanan-header";
 import { PermissionCard } from "../components/permission-card";
@@ -36,6 +36,9 @@ export function KeamananHomePage() {
   const [selectedPermission, setSelectedPermission] = useState<KeamananPermission | null>(null);
 
   const query = useKeamananDashboard();
+  const selectedPermissionId = selectedPermission ? (selectedPermission.permissionId || getPerijinanId(selectedPermission)) : 0;
+  const detailQuery = useKeamananDetail(selectedPermissionId);
+  const detailPermission = detailQuery.data ?? selectedPermission;
   const isUsingFallback = query.isError && isDemoFallbackEnabled();
   const dashboard = query.data ?? (isUsingFallback ? fallbackKeamananDashboard : {
     summary: { totalPerijinan: 0, disetujui: 0, ijinKeluar: 0 },
@@ -145,7 +148,7 @@ export function KeamananHomePage() {
       <DetailPerizinanModal
         open={!!selectedPermission}
         onOpenChange={(open) => !open && setSelectedPermission(null)}
-        permission={selectedPermission}
+        permission={detailPermission}
       />
     </main>
   );

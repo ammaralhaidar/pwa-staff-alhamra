@@ -9,6 +9,17 @@ import { useScanSecurityStudent } from "../../application/keamanan-queries";
 import type { KeamananScanResult } from "../../domain/keamanan-types";
 import { KeamananHeader } from "../components/keamanan-header";
 
+type Html5ScannerInstance = {
+  start: (
+    cameraConfig: { facingMode: string },
+    config: { fps: number; qrbox: { width: number; height: number } },
+    onSuccess: (decodedText: string) => void,
+    onError: () => void,
+  ) => Promise<void>;
+  stop: () => Promise<void>;
+  clear: () => void;
+};
+
 function navigateByResult(navigate: ReturnType<typeof useNavigate>, result: KeamananScanResult) {
   const permissionId = result.permission.permissionId || getPerijinanId(result.permission);
   if (!permissionId) {
@@ -19,33 +30,91 @@ function navigateByResult(navigate: ReturnType<typeof useNavigate>, result: Keam
   navigate(path, { state: { permission: result.permission } });
 }
 
+function debugScanner(message: string, payload?: unknown) {
+  if (!import.meta.env.DEV) return;
+  if (payload === undefined) {
+    console.info(`[keamanan-scan] ${message}`);
+    return;
+  }
+  console.info(`[keamanan-scan] ${message}`, payload);
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  return "Tidak diketahui";
+}
+
+async function safeStopScanner(scanner: Html5ScannerInstance | null) {
+  if (!scanner) return;
+  try {
+    debugScanner("cleanup scanner");
+    await scanner.stop();
+  } catch (error) {
+    debugScanner("scanner stop ignored", getErrorMessage(error));
+    // html5-qrcode throws when stop is called before the camera is fully running.
+  }
+  try {
+    scanner.clear();
+  } catch (error) {
+    debugScanner("scanner clear ignored", getErrorMessage(error));
+    // Ignore DOM cleanup errors from the scanner; React owns the page shell.
+  }
+}
+
 export function KeamananScanPage() {
   const navigate = useNavigate();
-  const scannerRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
+  const readerIdRef = useRef(`keamanan-reader-${Math.random().toString(36).slice(2)}`);
+  const readerHostRef = useRef<HTMLDivElement | null>(null);
+  const scannerRef = useRef<Html5ScannerInstance | null>(null);
   const lastScanRef = useRef<{ value: string; time: number } | null>(null);
   const isProcessingRef = useRef(false);
+  const isStartingRef = useRef(false);
+  const isRunningRef = useRef(false);
   const [cameraError, setCameraError] = useState("");
   const [isCameraActive, setIsCameraActive] = useState(false);
   const scanMutation = useScanSecurityStudent();
+  const scanMutationRef = useRef(scanMutation);
+
+  useEffect(() => {
+    scanMutationRef.current = scanMutation;
+  }, [scanMutation]);
 
   useEffect(() => {
     if (!isCameraActive) {
       // Clean up camera if deactivated
       const scanner = scannerRef.current;
       if (scanner) {
-        scanner.stop().then(() => scanner.clear()).catch(() => undefined);
         scannerRef.current = null;
+        isRunningRef.current = false;
+        isStartingRef.current = false;
+        void safeStopScanner(scanner);
       }
       return;
     }
 
     let active = true;
     async function startScanner() {
+      if (isStartingRef.current || isRunningRef.current) return;
+      isStartingRef.current = true;
       try {
         setCameraError("");
+        debugScanner("start scanner requested", {
+          readerId: readerIdRef.current,
+          secureContext: window.isSecureContext,
+        });
+        await new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() => resolve());
+        });
         const { Html5Qrcode } = await import("html5-qrcode");
         if (!active) return;
-        const scanner = new Html5Qrcode("keamanan-reader");
+        if (!readerHostRef.current) throw new Error("Container scanner belum tersedia.");
+        debugScanner("start scanner", {
+          width: readerHostRef.current.clientWidth,
+          height: readerHostRef.current.clientHeight,
+        });
+        readerHostRef.current?.replaceChildren();
+        const scanner = new Html5Qrcode(readerIdRef.current);
         scannerRef.current = scanner;
         await scanner.start(
           { facingMode: "environment" },
@@ -56,7 +125,7 @@ export function KeamananScanPage() {
             if (isProcessingRef.current || (lastScan?.value === decodedText && now - lastScan.time < 2_000)) return;
             isProcessingRef.current = true;
             lastScanRef.current = { value: decodedText, time: now };
-            scanMutation.mutate(decodedText, {
+            scanMutationRef.current.mutate(decodedText, {
               onSuccess: (result) => {
                 // Turn off camera before navigation
                 setIsCameraActive(false);
@@ -70,12 +139,17 @@ export function KeamananScanPage() {
           },
           () => undefined,
         );
-      } catch {
+        isRunningRef.current = true;
+        debugScanner("scanner started");
+      } catch (error) {
+        debugScanner("scanner failed", error);
         if (active) {
           const secureHint = window.isSecureContext ? "" : " Browser perlu HTTPS atau localhost untuk membuka kamera.";
-          setCameraError(`Kamera tidak bisa dibuka.${secureHint} Pakai input manual untuk melanjutkan.`);
+          setCameraError(`Kamera tidak bisa dibuka. ${getErrorMessage(error)}.${secureHint} Pakai input manual untuk melanjutkan.`);
           setIsCameraActive(false);
         }
+      } finally {
+        isStartingRef.current = false;
       }
     }
 
@@ -85,10 +159,13 @@ export function KeamananScanPage() {
       active = false;
       const scanner = scannerRef.current;
       if (scanner) {
-        scanner.stop().then(() => scanner.clear()).catch(() => undefined);
+        scannerRef.current = null;
+        isRunningRef.current = false;
+        isStartingRef.current = false;
+        void safeStopScanner(scanner);
       }
     };
-  }, [isCameraActive, navigate, scanMutation]);
+  }, [isCameraActive, navigate]);
 
   return (
     <div className="relative mx-auto flex min-h-svh w-screen max-w-[430px] flex-col bg-white">
@@ -138,10 +215,13 @@ export function KeamananScanPage() {
 
         {/* Scanner Container Card */}
         <Card className="relative overflow-hidden rounded-[32px] border border-slate-100 bg-[#F8FAFC] p-6 shadow-sm mt-4">
-          <div
-            id="keamanan-reader"
-            className="relative flex aspect-square w-full flex-col items-center justify-center overflow-hidden rounded-3xl bg-[#F8FAFC]"
-          >
+          <div className="relative flex aspect-square w-full flex-col items-center justify-center overflow-hidden rounded-3xl bg-[#F8FAFC]">
+            <div
+              id={readerIdRef.current}
+              ref={readerHostRef}
+              className={`absolute inset-0 overflow-hidden rounded-3xl transition-opacity ${isCameraActive ? "opacity-100" : "pointer-events-none opacity-0"}`}
+            />
+
             {/* Custom overlays for scan area when inactive */}
             {!isCameraActive ? (
               <div className="flex flex-col items-center justify-center px-6 text-center space-y-4">
@@ -173,7 +253,11 @@ export function KeamananScanPage() {
       <div className="fixed bottom-0 left-1/2 z-30 w-screen max-w-[430px] -translate-x-1/2 border-t border-slate-100 bg-white px-4 py-4">
         <div className="space-y-3">
           <Button
-            onClick={() => setIsCameraActive((prev) => !prev)}
+            onClick={() => {
+              debugScanner(isCameraActive ? "deactivate camera" : "activate camera");
+              setCameraError("");
+              setIsCameraActive((prev) => !prev);
+            }}
             className={`h-14 w-full rounded-2xl text-base font-extrabold transition shadow-md ${
               isCameraActive
                 ? "bg-red-600 hover:bg-red-700 text-white"

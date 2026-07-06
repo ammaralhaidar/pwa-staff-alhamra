@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getPerijinanId } from "../../application/keamanan-mappers";
-import { useScanSecurityStudent, useSearchSecurityManual } from "../../application/keamanan-queries";
+import { useKeamananDetail, useScanSecurityStudent, useSearchSecurityManual } from "../../application/keamanan-queries";
 import type { KeamananPermission, KeamananScanResult } from "../../domain/keamanan-types";
 import { KeamananHeader } from "../components/keamanan-header";
 import { DetailPerizinanModal } from "../components/detail-perizinan-modal";
@@ -30,6 +30,9 @@ export function KeamananManualPage() {
 
   const scanMutation = useScanSecurityStudent();
   const searchMutation = useSearchSecurityManual();
+  const selectedPermissionId = selectedPermission ? (selectedPermission.permissionId || getPerijinanId(selectedPermission)) : 0;
+  const detailQuery = useKeamananDetail(selectedPermissionId);
+  const detailPermission = detailQuery.data ?? selectedPermission;
   const isLoading = scanMutation.isPending || searchMutation.isPending;
 
   const submit = () => {
@@ -206,7 +209,7 @@ export function KeamananManualPage() {
       <DetailPerizinanModal
         open={!!selectedPermission}
         onOpenChange={(open) => !open && setSelectedPermission(null)}
-        permission={selectedPermission}
+        permission={detailPermission}
       />
     </div>
   );
