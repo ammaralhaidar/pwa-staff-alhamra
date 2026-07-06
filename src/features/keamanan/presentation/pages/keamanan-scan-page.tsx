@@ -4,12 +4,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getPerijinanId } from "../../application/keamanan-mappers";
 import { useScanSecurityStudent } from "../../application/keamanan-queries";
 import type { KeamananScanResult } from "../../domain/keamanan-types";
 import { KeamananHeader } from "../components/keamanan-header";
 
 function navigateByResult(navigate: ReturnType<typeof useNavigate>, result: KeamananScanResult) {
-  const path = result.actionType === "checkin" ? `/keamanan/checkin/${result.permission.permissionId}` : `/keamanan/checkout/${result.permission.permissionId}`;
+  const permissionId = result.permission.permissionId || getPerijinanId(result.permission);
+  if (!permissionId) {
+    toast.error("Data perizinan dari QR tidak lengkap. Coba scan ulang atau gunakan input manual.");
+    return;
+  }
+  const path = result.actionType === "checkin" ? `/keamanan/checkin/${permissionId}` : `/keamanan/checkout/${permissionId}`;
   navigate(path, { state: { permission: result.permission } });
 }
 
@@ -85,7 +91,7 @@ export function KeamananScanPage() {
   }, [isCameraActive, navigate, scanMutation]);
 
   return (
-    <div className="relative mx-auto flex h-svh w-full max-w-[430px] flex-col bg-white">
+    <div className="relative mx-auto flex min-h-svh w-screen max-w-[430px] flex-col bg-white">
       {/* Sticky Header */}
       <div className="shrink-0 z-40">
         <KeamananHeader
@@ -99,8 +105,8 @@ export function KeamananScanPage() {
         />
       </div>
 
-      {/* Main Content (Non-scrollable) */}
-      <div className="flex-1 overflow-hidden px-5 py-6 space-y-5">
+      {/* Main Content */}
+      <div className="flex-1 space-y-5 px-5 py-6 pb-40">
         {/* Info Card */}
         <Card className="rounded-[24px] border-none bg-[#F5F9FD] p-5 shadow-sm text-left relative overflow-hidden">
           <div className="absolute left-0 top-4 bottom-4 w-1 bg-[#288DE5] rounded-r-md" />
@@ -164,8 +170,8 @@ export function KeamananScanPage() {
       </div>
 
       {/* Sticky Bottom Actions */}
-      <div className="fixed inset-x-0 bottom-0 bg-white border-t border-slate-100 px-4 py-4 z-30">
-        <div className="mx-auto max-w-[430px] space-y-3">
+      <div className="fixed bottom-0 left-1/2 z-30 w-screen max-w-[430px] -translate-x-1/2 border-t border-slate-100 bg-white px-4 py-4">
+        <div className="space-y-3">
           <Button
             onClick={() => setIsCameraActive((prev) => !prev)}
             className={`h-14 w-full rounded-2xl text-base font-extrabold transition shadow-md ${

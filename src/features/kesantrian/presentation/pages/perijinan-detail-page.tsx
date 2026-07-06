@@ -26,7 +26,7 @@ export function PerijinanDetailPage() {
   const isNotFound = !isInvalidId && !isLoading && !error && !detail;
 
   const canDecide = useMemo(
-    () => detail?.status === "check" || detail?.status === "draft",
+    () => detail?.status === "check",
     [detail?.status],
   );
 
@@ -48,15 +48,15 @@ export function PerijinanDetailPage() {
   }
 
   return (
-    <div className="relative mx-auto flex h-svh max-w-[430px] flex-col bg-[#EFF6FF]">
+    <div className="relative mx-auto flex h-svh w-screen max-w-[430px] flex-col overflow-hidden bg-[#EFF6FF]">
       {/* Sticky Header */}
       <div className="shrink-0 z-40">
         <KesantrianHeader title="Detail Perijinan" description={detail?.reference} onBack={() => navigate("/kesantrian/perijinan")} />
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto pb-24">
-        <section className="mx-auto max-w-md space-y-4 px-4 py-5">
+      <div className={`flex-1 overflow-y-auto ${canDecide ? "pb-24" : "pb-6"}`}>
+        <section className="w-full space-y-4 px-4 py-5">
           {isInvalidId ? (
             <StateMessage title="ID perijinan tidak valid" description="Buka ulang data dari halaman daftar perijinan." />
           ) : null}
@@ -75,12 +75,14 @@ export function PerijinanDetailPage() {
           {isNotFound ? <StateMessage title="Perijinan tidak ditemukan" description="Data mungkin sudah berubah atau tidak tersedia." /> : null}
           {detail ? (
             <>
-              <div className="flex items-center justify-between rounded-3xl bg-white p-4 shadow-sm">
-                <div>
-                  <p className="text-xs text-slate-400">{detail.reference}</p>
-                  <h2 className="text-lg font-bold text-slate-900">{detail.namaSantri}</h2>
+              <div className="rounded-3xl bg-white p-5 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-400">No. Referensi</p>
+                    <h2 className="mt-1 break-words text-2xl font-bold leading-tight text-slate-900">{detail.reference}</h2>
+                  </div>
+                  <StatusBadge status={detail.status} label={detail.statusLabel} />
                 </div>
-                <StatusBadge status={detail.status} label={detail.statusLabel} />
               </div>
 
               {detail.status === "reject" && detail.alasanTolak ? (
@@ -126,8 +128,8 @@ export function PerijinanDetailPage() {
       </div>
 
       {canDecide ? (
-        <div className="fixed inset-x-0 bottom-0 border-t border-slate-100 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur z-30">
-          <div className="mx-auto max-w-md grid grid-cols-2 gap-3">
+        <div className="fixed bottom-0 left-1/2 z-30 w-screen max-w-[430px] -translate-x-1/2 border-t border-slate-100 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur">
+          <div className="grid grid-cols-2 gap-3">
             <Button type="button" variant="destructive" className="h-11 rounded-2xl" onClick={() => setDialog("reject")}>
               Tolak
             </Button>

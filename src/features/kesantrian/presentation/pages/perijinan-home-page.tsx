@@ -18,6 +18,7 @@ const statusOptions = [
   { value: "reject", label: "Ditolak" },
   { value: "keluar", label: "Keluar" },
   { value: "kembali", label: "Kembali" },
+  { value: "selesai", label: "Selesai" },
 ];
 
 export function PerijinanHomePage() {
@@ -32,7 +33,6 @@ export function PerijinanHomePage() {
   const filteredData = useMemo(
     () =>
       displayData.filter((item) => {
-        if (item.status === "kembali" || item.status === "selesai") return false;
         if (status !== "all" && item.status !== status) return false;
         if (!matchesTimeRange(item.tanggalIjin, timeRange)) return false;
 

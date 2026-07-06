@@ -44,7 +44,7 @@ function StateMessage({
 }) {
   const isCheckout = actionType === "checkout";
   return (
-    <div className="relative mx-auto flex h-svh w-full max-w-[430px] flex-col bg-[#F8FAFC]">
+    <div className="relative mx-auto flex h-svh w-screen max-w-[430px] flex-col bg-[#F8FAFC]">
       <header className={`${isCheckout ? "bg-orange-500" : "bg-emerald-500"} shrink-0 rounded-b-[24px] px-5 py-6.5 text-white`}>
         <div className="flex items-center justify-between">
           <Button asChild size="icon" variant="ghost" className="size-9 rounded-full text-white hover:bg-white/10">
@@ -177,7 +177,7 @@ export function KeamananActionPage({ actionType }: { actionType: KeamananActionT
   }
 
   return (
-    <div className="relative mx-auto flex h-svh w-full max-w-[430px] flex-col bg-[#F8FAFC]">
+    <div className="relative mx-auto flex h-svh w-screen max-w-[430px] flex-col bg-[#F8FAFC]">
       {/* Sticky Header */}
       <header className={`${isCheckout ? "bg-orange-500" : "bg-emerald-500"} px-5 py-6.5 text-white shrink-0 z-40 rounded-b-[24px]`}>
         <div className="flex items-center justify-between">
@@ -232,8 +232,8 @@ export function KeamananActionPage({ actionType }: { actionType: KeamananActionT
       </div>
 
       {/* Sticky Bottom Button */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-slate-100 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur z-30">
-        <div className="mx-auto max-w-[430px]">
+      <div className="fixed bottom-0 left-1/2 z-30 w-screen max-w-[430px] -translate-x-1/2 border-t border-slate-100 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur">
+        <div>
           <Button className={`h-14 w-full rounded-2xl text-base font-black ${isCheckout ? "bg-orange-500 hover:bg-orange-600" : "bg-emerald-500 hover:bg-emerald-600"}`} disabled={mutationPending} onClick={confirm}>
             {isCheckout ? <LogOut className="mr-2 size-5" /> : <LogIn className="mr-2 size-5" />}
             {mutationPending ? "Memproses..." : isCheckout ? "Konfirmasi Checkout" : "Konfirmasi Checkin"}

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getPerijinanId } from "../../application/keamanan-mappers";
 import { useScanSecurityStudent, useSearchSecurityManual } from "../../application/keamanan-queries";
 import type { KeamananPermission, KeamananScanResult } from "../../domain/keamanan-types";
 import { KeamananHeader } from "../components/keamanan-header";
@@ -12,7 +13,12 @@ import { DetailPerizinanModal } from "../components/detail-perizinan-modal";
 
 function goToAction(navigate: ReturnType<typeof useNavigate>, result: KeamananScanResult) {
   const target = result.actionType === "checkin" ? "checkin" : "checkout";
-  navigate(`/keamanan/${target}/${result.permission.permissionId}`, { state: { permission: result.permission } });
+  const permissionId = result.permission.permissionId || getPerijinanId(result.permission);
+  if (!permissionId) {
+    toast.error("Data perizinan tidak lengkap. Coba cari ulang dengan nama atau NIS.");
+    return;
+  }
+  navigate(`/keamanan/${target}/${permissionId}`, { state: { permission: result.permission } });
 }
 
 export function KeamananManualPage() {
@@ -72,7 +78,7 @@ export function KeamananManualPage() {
   };
 
   return (
-    <div className="relative mx-auto flex h-svh w-full max-w-[430px] flex-col bg-white">
+    <div className="relative mx-auto flex h-svh w-screen max-w-[430px] flex-col bg-white">
       {/* Sticky Header */}
       <div className="shrink-0 z-40">
         <KeamananHeader
@@ -184,8 +190,8 @@ export function KeamananManualPage() {
       </div>
 
       {/* Sticky Bottom Action Button */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-slate-100 bg-white px-4 py-4 z-30">
-        <div className="mx-auto max-w-[430px]">
+      <div className="fixed bottom-0 left-1/2 z-30 w-screen max-w-[430px] -translate-x-1/2 border-t border-slate-100 bg-white px-4 py-4">
+        <div>
           <Button
             className="h-14 w-full rounded-2xl text-[16px] font-bold bg-[#288DE5] hover:bg-[#1B6FB7] text-white shadow-md active:scale-95 transition"
             disabled={isLoading}

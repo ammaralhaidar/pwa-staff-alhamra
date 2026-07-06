@@ -42,40 +42,41 @@ export function DetailPerizinanModal({ open, onOpenChange, permission }: DetailP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-[400px] overflow-hidden rounded-[32px] border-0 p-0 shadow-2xl bg-white">
+      <DialogContent
+        showCloseButton={false}
+        className="max-h-[calc(100svh-56px)] w-[calc(100vw-32px)] max-w-[390px] overflow-hidden rounded-[28px] border-0 bg-white p-0 shadow-2xl"
+      >
         {/* Modal Header */}
-        <div className="relative flex items-center justify-between bg-[#288DE5] px-6 py-5 text-white">
-          <div className="flex items-center gap-3">
+        <div className="relative flex items-start justify-between gap-3 bg-[#288DE5] px-4 py-4 text-white">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20">
               <User className="size-6 text-white" />
             </div>
-            <div className="min-w-0">
-              <h3 className="truncate text-base font-extrabold leading-tight">
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-[17px] font-bold leading-tight">
                 {permission.studentName}
               </h3>
-              <p className="text-xs text-white/80">NIS: {permission.studentNis || "-"}</p>
+              <p className="mt-0.5 text-sm font-medium text-white/80">NIS: {permission.studentNis || "-"}</p>
+              <span className="mt-2 inline-flex rounded-full border border-white/30 bg-white/20 px-3 py-1 text-[12px] font-semibold leading-tight text-white">
+                {statusLabel}
+              </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full border border-white/30 bg-white/20 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
-              {statusLabel}
-            </span>
-            <DialogClose asChild>
-              <button
-                type="button"
-                className="flex size-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition active:scale-95"
-              >
-                <X className="size-4" />
-              </button>
-            </DialogClose>
-          </div>
+          <DialogClose asChild>
+            <button
+              type="button"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 active:scale-95"
+            >
+              <X className="size-5" />
+            </button>
+          </DialogClose>
         </div>
 
         {/* Modal Body */}
-        <div className="max-h-[70vh] overflow-y-auto px-5 py-6 space-y-6">
+        <div className="max-h-[calc(100svh-205px)] space-y-5 overflow-y-auto px-4 py-5">
           {/* Section: Data Perizinan */}
           <div className="space-y-3">
-            <h4 className="flex items-center gap-2 text-sm font-extrabold text-slate-800">
+            <h4 className="flex items-center gap-2 text-[17px] font-bold text-slate-800">
               <ClipboardList className="size-4 text-[#288DE5]" />
               Data Perizinan
             </h4>
@@ -92,7 +93,7 @@ export function DetailPerizinanModal({ open, onOpenChange, permission }: DetailP
 
           {/* Section: Data Santri */}
           <div className="space-y-3">
-            <h4 className="flex items-center gap-2 text-sm font-extrabold text-slate-800">
+            <h4 className="flex items-center gap-2 text-[17px] font-bold text-slate-800">
               <UserRound className="size-4 text-[#288DE5]" />
               Data Santri
             </h4>
@@ -108,7 +109,7 @@ export function DetailPerizinanModal({ open, onOpenChange, permission }: DetailP
 
           {/* Section: Riwayat */}
           <div className="space-y-3">
-            <h4 className="flex items-center gap-2 text-sm font-extrabold text-slate-800">
+            <h4 className="flex items-center gap-2 text-[17px] font-bold text-slate-800">
               <Clock className="size-4 text-[#288DE5]" />
               Riwayat
             </h4>
@@ -149,9 +150,9 @@ interface DetailRowProps {
 
 function DetailRow({ label, value }: DetailRowProps) {
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-[#F8FAFC] px-4 py-3.5">
-      <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">{label}</span>
-      <span className="text-sm font-extrabold text-slate-800 max-w-[200px] truncate text-right">
+    <div className="flex min-h-[54px] items-center justify-between gap-4 rounded-2xl bg-[#F8FAFC] px-4 py-3">
+      <span className="text-sm font-medium leading-snug text-slate-400">{label}</span>
+      <span className="max-w-[58%] break-words text-right text-sm font-semibold leading-snug text-slate-800">
         {value || "-"}
       </span>
     </div>
