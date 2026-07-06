@@ -42,6 +42,7 @@ export function PelanggaranDetailPage() {
   const [managerNoteDraft, setManagerNoteDraft] = useState<string | undefined>();
   const [dialog, setDialog] = useState<PelanggaranDecision | "cancel" | null>(null);
   const isNotFound = !isInvalidId && !isLoading && !error && !detail;
+  const canEditTindakan = detail?.status === "draft" || detail?.status === "proses";
   const tindakanId = tindakanIdDraft ?? detail?.infoTindakan?.tindakanId;
   const deskripsiTindakan = deskripsiTindakanDraft ?? detail?.infoTindakan?.deskripsiTindakan ?? "";
   const managerNote = managerNoteDraft ?? detail?.keputusan?.catatanKaAsrama ?? "";
@@ -146,7 +147,6 @@ export function PelanggaranDetailPage() {
                 title="Data Pelanggaran"
                 items={[
                   { label: "Pelanggaran", value: detail.namaPelanggaran },
-                  { label: "Jenis", value: detail.jenisPelanggaran },
                   { label: "Kategori", value: detail.kategori },
                   { label: "Poin", value: detail.poin },
                   { label: "Deskripsi", value: detail.deskripsi },
@@ -155,26 +155,35 @@ export function PelanggaranDetailPage() {
 
               <section className="space-y-4 rounded-3xl bg-white p-4 shadow-sm">
                 <h3 className="font-semibold text-slate-900">Tindakan / Hukuman</h3>
-                {isLoadingTindakan ? <p className="text-sm text-slate-500">Memuat pilihan tindakan...</p> : null}
-                {tindakanError ? (
-                  <div className="rounded-2xl bg-rose-50 p-3 text-sm text-rose-700">
-                    <p>Gagal memuat master tindakan.</p>
-                    <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => refetchTindakan()}>
-                      Coba lagi
-                    </Button>
+                {canEditTindakan ? (
+                  <>
+                    {isLoadingTindakan ? <p className="text-sm text-slate-500">Memuat pilihan tindakan...</p> : null}
+                    {tindakanError ? (
+                      <div className="rounded-2xl bg-rose-50 p-3 text-sm text-rose-700">
+                        <p>Gagal memuat master tindakan.</p>
+                        <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => refetchTindakan()}>
+                          Coba lagi
+                        </Button>
+                      </div>
+                    ) : null}
+                    {!isLoadingTindakan && !tindakanError && tindakanOptions.length === 0 ? (
+                      <p className="rounded-2xl bg-amber-50 p-3 text-sm text-amber-700">Master tindakan belum tersedia.</p>
+                    ) : null}
+                    <TindakanPicker value={tindakanId} options={tindakanOptions} onChange={setTindakanIdDraft} disabled={isLoadingTindakan || Boolean(tindakanError)} />
+                    <Textarea
+                      value={deskripsiTindakan}
+                      onChange={(event) => setDeskripsiTindakanDraft(event.target.value)}
+                      placeholder="Deskripsi tindakan"
+                      className="min-h-24 rounded-2xl border-blue-100"
+                    />
+                  </>
+                ) : (
+                  <div className="space-y-4 border-t border-slate-100 pt-4">
+                    <ReadOnlyField label="Tindakan" value={detail.infoTindakan?.tindakanNama || detail.tindakan} />
+                    <ReadOnlyField label="Deskripsi Tindakan" value={detail.infoTindakan?.deskripsiTindakan} />
+                    <ReadOnlyField label="Diperiksa Oleh" value={detail.infoTindakan?.diperiksaOleh || detail.keputusan?.userDisetujui} />
                   </div>
-                ) : null}
-                {!isLoadingTindakan && !tindakanError && tindakanOptions.length === 0 ? (
-                  <p className="rounded-2xl bg-amber-50 p-3 text-sm text-amber-700">Master tindakan belum tersedia.</p>
-                ) : null}
-                <TindakanPicker value={tindakanId} options={tindakanOptions} onChange={setTindakanIdDraft} disabled={detail.status === "selesai" || detail.status === "batal" || isLoadingTindakan || Boolean(tindakanError)} />
-                <Textarea
-                  value={deskripsiTindakan}
-                  onChange={(event) => setDeskripsiTindakanDraft(event.target.value)}
-                  placeholder="Deskripsi tindakan"
-                  disabled={detail.status === "selesai" || detail.status === "batal"}
-                  className="min-h-24 rounded-2xl border-blue-100"
-                />
+                )}
               </section>
 
               <ManagerNoteCard value={managerNote} onChange={setManagerNoteDraft} readOnly={detail.status !== "validasi"} title="Mengetahui / Disetujui" />
@@ -199,14 +208,14 @@ export function PelanggaranDetailPage() {
       {detail && detail.status === "validasi" ? (
         <div className="fixed inset-x-0 bottom-0 border-t border-slate-100 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur z-30">
           <div className="mx-auto max-w-md grid grid-cols-3 gap-2">
-            <Button type="button" variant="destructive" className="h-11 rounded-2xl text-xs px-1.5 truncate" onClick={() => setDialog("tolak")}>
+            <Button type="button" className="h-[52px] rounded-2xl bg-[#DC2626] px-1.5 text-xs font-bold leading-tight text-white hover:bg-[#B91C1C]" onClick={() => setDialog("tolak")}>
               Tolak
             </Button>
-            <Button type="button" variant="outline" className="h-11 rounded-2xl bg-white text-xs px-1.5 truncate border-slate-200" onClick={() => setDialog("no_poin")}>
-              Tanpa Poin
+            <Button type="button" className="h-[52px] rounded-2xl bg-[#EA580C] px-1.5 text-xs font-bold leading-tight text-white hover:bg-[#C2410C]" onClick={() => setDialog("no_poin")}>
+              Selesai Tanpa Poin
             </Button>
-            <Button type="button" className="h-11 rounded-2xl bg-[#288DE5] text-xs px-1.5 truncate" onClick={() => setDialog("poin")}>
-              Dengan Poin
+            <Button type="button" className="h-[52px] rounded-2xl bg-[#059669] px-1.5 text-xs font-bold leading-tight text-white hover:bg-[#047857]" onClick={() => setDialog("poin")}>
+              Selesai + Poin
             </Button>
           </div>
         </div>
@@ -214,8 +223,10 @@ export function PelanggaranDetailPage() {
 
       <DecisionDialog
         open={dialog === "poin"}
-        title="Selesai Dengan Poin?"
-        confirmLabel="Selesaikan"
+        title="Selesaikan Dengan Poin?"
+        description="Pelanggaran akan diselesaikan dan poin santri akan dikurangi sesuai data pelanggaran."
+        confirmLabel="Selesai + Poin"
+        tone="green"
         loading={decideMutation.isPending}
         onOpenChange={(open) => setDialog(open ? "poin" : null)}
         onConfirm={submitDecision}
@@ -223,7 +234,9 @@ export function PelanggaranDetailPage() {
       <DecisionDialog
         open={dialog === "no_poin"}
         title="Selesai Tanpa Poin?"
-        confirmLabel="Selesaikan"
+        description="Pelanggaran akan diselesaikan tanpa pengurangan poin santri."
+        confirmLabel="Selesai Tanpa Poin"
+        tone="orange"
         loading={decideMutation.isPending}
         onOpenChange={(open) => setDialog(open ? "no_poin" : null)}
         onConfirm={submitDecision}
@@ -231,7 +244,9 @@ export function PelanggaranDetailPage() {
       <DecisionDialog
         open={dialog === "tolak"}
         title="Tolak Pelanggaran?"
+        description="Tuliskan alasan penolakan agar keputusan bisa dipahami oleh pihak terkait."
         confirmLabel="Tolak"
+        tone="red"
         requireNote
         loading={decideMutation.isPending}
         onOpenChange={(open) => setDialog(open ? "tolak" : null)}
@@ -242,6 +257,7 @@ export function PelanggaranDetailPage() {
         title="Batalkan Pelanggaran?"
         description="Tuliskan alasan pembatalan agar riwayat keputusan tetap jelas."
         confirmLabel="Batalkan"
+        tone="red"
         requireNote
         loading={cancelMutation.isPending}
         onOpenChange={(open) => setDialog(open ? "cancel" : null)}
@@ -271,6 +287,15 @@ function StateMessage({
           {actionLabel}
         </Button>
       ) : null}
+    </div>
+  );
+}
+
+function ReadOnlyField({ label, value }: { label: string; value?: string | number | null }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-slate-400">{label}</p>
+      <p className="mt-1.5 text-sm font-bold text-slate-900">{value || "-"}</p>
     </div>
   );
 }

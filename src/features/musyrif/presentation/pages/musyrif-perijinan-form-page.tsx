@@ -4,13 +4,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { isDemoFallbackEnabled } from "@/lib/helpers";
 import { fallbackMusyrifStudents } from "../../application/musyrif-fallback-data";
 import { useCreateMusyrifPerijinan, useMusyrifStudents } from "../../application/musyrif-queries";
 import { validatePerijinanPayload } from "../../application/musyrif-schemas";
+import { MusyrifDatePicker } from "../components/musyrif-date-picker";
 import { MusyrifHeader } from "../components/musyrif-header";
+import { MusyrifTimePicker } from "../components/musyrif-time-picker";
+import { SearchableOptionPicker } from "../components/searchable-option-picker";
 
 function dateDiffLabel(start: string, end: string) {
   if (!start || !end) return "0 Hari";
@@ -19,8 +21,16 @@ function dateDiffLabel(start: string, end: string) {
   return `${diff} Hari`;
 }
 
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function MusyrifPerijinanFormPage() {
   const navigate = useNavigate();
+  const today = useMemo(() => formatDateInput(new Date()), []);
   const studentsQuery = useMusyrifStudents();
   const createMutation = useCreateMusyrifPerijinan();
   const isUsingStudentFallback = studentsQuery.isError && isDemoFallbackEnabled();
@@ -31,8 +41,8 @@ export function MusyrifPerijinanFormPage() {
   
   const [form, setForm] = useState({
     siswa_id: "",
-    tgl_ijin: "",
-    tgl_kembali: "",
+    tgl_ijin: today,
+    tgl_kembali: today,
     jam_penjemputan: "",
     penjemput: "",
     keperluan: "",
@@ -43,8 +53,24 @@ export function MusyrifPerijinanFormPage() {
   const selectedStudent = useMemo(() => {
     return students.find((s) => String(s.id) === form.siswa_id);
   }, [students, form.siswa_id]);
+  const studentOptions = useMemo(
+    () => students.map((student) => ({
+      value: String(student.id),
+      label: student.name,
+      subtitle: student.nis ? `NIS: ${student.nis}` : undefined,
+      badge: student.kelas,
+    })),
+    [students],
+  );
 
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
+  const updateTanggalIzin = (value: string) => {
+    setForm((current) => ({
+      ...current,
+      tgl_ijin: value,
+      tgl_kembali: current.tgl_kembali && current.tgl_kembali >= value ? current.tgl_kembali : value,
+    }));
+  };
 
   const submit = () => {
     if (isUsingStudentFallback) {
@@ -98,30 +124,21 @@ export function MusyrifPerijinanFormPage() {
               <label className="text-xs font-bold text-slate-500 block">
                 Tanggal Ijin <span className="text-red-500">*</span>
               </label>
-              <Input 
-                type="date" 
-                value={form.tgl_ijin} 
-                onChange={(event) => update("tgl_ijin", event.target.value)} 
-                className="h-11 rounded-xl border-slate-200 focus-visible:ring-blue-500"
-              />
+              <MusyrifDatePicker value={form.tgl_ijin} min={today} onChange={updateTanggalIzin} />
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 block">
                 Siswa <span className="text-red-500">*</span>
               </label>
-              <Select value={form.siswa_id} onValueChange={(value) => update("siswa_id", value)}>
-                <SelectTrigger className="h-11 rounded-xl border-slate-200">
-                  <SelectValue placeholder="Pilih Santri" />
-                </SelectTrigger>
-                <SelectContent>
-                  {students.map((student) => (
-                    <SelectItem key={student.id} value={String(student.id)}>
-                      {student.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableOptionPicker
+                value={form.siswa_id}
+                onChange={(value) => update("siswa_id", value)}
+                title="Pilih Santri"
+                placeholder="Pilih Santri"
+                searchPlaceholder="Cari nama, NIS, atau kelas..."
+                options={studentOptions}
+              />
               {!students.length ? <p className="text-xs font-semibold text-amber-600">Data santri belum tersedia.</p> : null}
             </div>
 
@@ -154,12 +171,7 @@ export function MusyrifPerijinanFormPage() {
               <label className="text-xs font-bold text-slate-500 block">
                 Tanggal Kembali <span className="text-red-500">*</span>
               </label>
-              <Input 
-                type="date" 
-                value={form.tgl_kembali} 
-                onChange={(event) => update("tgl_kembali", event.target.value)} 
-                className="h-11 rounded-xl border-slate-200 focus-visible:ring-blue-500"
-              />
+              <MusyrifDatePicker value={form.tgl_kembali} min={form.tgl_ijin || today} onChange={(value) => update("tgl_kembali", value)} />
             </div>
 
             <div className="space-y-1">
@@ -178,12 +190,7 @@ export function MusyrifPerijinanFormPage() {
               <label className="text-xs font-bold text-slate-500 block">
                 Jam Penjemputan <span className="text-red-500">*</span>
               </label>
-              <Input 
-                type="time" 
-                value={form.jam_penjemputan} 
-                onChange={(event) => update("jam_penjemputan", event.target.value)} 
-                className="h-11 rounded-xl border-slate-200 focus-visible:ring-blue-500"
-              />
+              <MusyrifTimePicker value={form.jam_penjemputan} onChange={(value) => update("jam_penjemputan", value)} />
             </div>
 
             <div className="space-y-1">
@@ -223,7 +230,7 @@ export function MusyrifPerijinanFormPage() {
       <div className="fixed inset-x-0 bottom-0 border-t border-slate-100 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur z-30">
         <div className="mx-auto max-w-[430px]">
           <Button className="h-12 w-full rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold" disabled={createMutation.isPending || isUsingStudentFallback} onClick={submit}>
-            Ijin Diperiksa
+            Ajukan Izin
           </Button>
         </div>
       </div>

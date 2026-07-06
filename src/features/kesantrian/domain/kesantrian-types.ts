@@ -138,6 +138,7 @@ export type Pelanggaran = {
     tindakanId?: number;
     tindakanNama?: string;
     deskripsiTindakan?: string;
+    diperiksaOleh?: string;
   };
   keputusan?: {
     userDisetujui?: string;

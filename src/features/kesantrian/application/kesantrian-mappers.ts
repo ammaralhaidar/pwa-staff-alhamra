@@ -201,7 +201,7 @@ export function mapPelanggaran(raw: RawRecord): Pelanggaran {
     kategori: optionalString(raw.kategori ?? infoPelanggaran.kategori),
     poin: numberOrZero(raw.poin_potensi ?? raw.poin ?? infoPelanggaran.poin),
     tindakan: optionalString(raw.tindakan ?? infoTindakan.tindakan_nama),
-    deskripsi: optionalString(raw.deskripsi ?? infoPelanggaran.deskripsi_pelanggaran),
+    deskripsi: optionalString(raw.deskripsi ?? infoPelanggaran.deskripsi ?? infoPelanggaran.deskripsi_pelanggaran),
     catatan: optionalString(raw.catatan ?? infoPelanggaran.catatan),
     status,
     statusLabel: pelanggaranStatusLabel(status),
@@ -211,6 +211,7 @@ export function mapPelanggaran(raw: RawRecord): Pelanggaran {
       tindakanId: numberOrUndefined(infoTindakan.tindakan_id),
       tindakanNama: optionalString(infoTindakan.tindakan_nama),
       deskripsiTindakan: optionalString(infoTindakan.deskripsi_tindakan),
+      diperiksaOleh: optionalString(infoTindakan.diperiksa_oleh),
     },
     keputusan: {
       userDisetujui: optionalString(keputusan.user_disetujui),

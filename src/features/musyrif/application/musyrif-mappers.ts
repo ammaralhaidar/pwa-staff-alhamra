@@ -124,11 +124,11 @@ export function mapPerijinan(item: unknown): MusyrifPerijinan {
     status,
     statusLabel: text(raw.status_label, raw.state_label, raw.status, status),
     tanggalIzin: text(raw.tanggal_izin, raw.tanggal_ijin, raw.tgl_izin, raw.tgl_ijin, raw.date_from, detail.tanggal_izin, detail.tgl_ijin),
-    tanggalKembali: text(raw.tanggal_kembali, raw.tgl_kembali, raw.date_to, detail.tanggal_kembali),
+    tanggalKembali: text(raw.tanggal_kembali, raw.tgl_kembali, raw.date_to, detail.tanggal_kembali, detail.tgl_kembali),
     jamKeluar: text(raw.jam_keluar, raw.jam_penjemputan, penjemputan.jam_penjemputan, realisasi.jam_keluar),
     jamKembali: text(raw.jam_kembali, realisasi.jam_kembali),
-    durasi: text(raw.durasi, raw.duration),
-    penjemput: text(raw.penjemput, raw.nama_penjemput, penjemputan.nama),
+    durasi: text(raw.durasi, raw.duration, detail.durasi),
+    penjemput: text(raw.penjemput, raw.nama_penjemput, penjemputan.penjemput, penjemputan.nama),
     keperluan: text(raw.keperluan, raw.alasan, raw.reason, detail.keperluan),
     catatan: text(raw.catatan, raw.note, detail.catatan),
     managerNote: text(raw.manager_note, raw.catatan_manager, raw.alasan_tolak),
@@ -164,7 +164,7 @@ export function mapStudent(item: unknown): MusyrifStudent {
     saldoUangSaku: numberValue(source.saldo_uang_saku, source.uang_saku, source.saldoSaku, keuangan.saldo_uang_saku),
     saldoDompet: numberValue(source.saldo_dompet, source.wallet_balance, source.dompet, source.saldoDompet, keuangan.wallet_balance),
     pinDompet: text(source.pin_dompet, keuangan.pin_dompet) || null,
-    hasPinSet: boolValue(source.has_pin, source.hasPinSet, keuangan.has_pin, source.pin_dompet, keuangan.pin_dompet),
+    hasPinSet: boolValue(source.has_pin, source.hasPinSet, keuangan.has_pin) || Boolean(text(source.pin_dompet, keuangan.pin_dompet)),
   };
 
   return {
@@ -238,12 +238,13 @@ export function mapStudentList(value: unknown): MusyrifStudent[] {
 
 export function mapWalletBalance(value: unknown, santriId: number): WalletBalance {
   const raw = record(unwrapOdooData(value));
+  const pinDompet = text(raw.pin_dompet) || null;
   return {
     santriId,
     uangSaku: numberValue(raw.uang_saku, raw.saldo_uang_saku, raw.saku, raw.sisa_uang_saku),
     dompet: numberValue(raw.dompet, raw.saldo_dompet, raw.wallet, raw.wallet_balance, raw.saldo_dompet_baru),
-    pinDompet: text(raw.pin_dompet) || null,
-    hasPinSet: boolValue(raw.has_pin, raw.pin_dompet),
+    pinDompet,
+    hasPinSet: boolValue(raw.has_pin) || Boolean(pinDompet),
   };
 }
 
@@ -256,8 +257,8 @@ export function mapWalletHistory(value: unknown, type: WalletHistoryType): Walle
     return {
       id: numberValue(raw.id) || Math.abs(amount),
       type,
-      title: text(raw.name, raw.title, raw.keterangan, kind === "in" ? "Dana masuk" : "Dana keluar"),
-      description: text(raw.description, raw.note, raw.catatan),
+      title: text(raw.name, raw.title, raw.ket, raw.keterangan, kind === "in" ? "Dana masuk" : "Dana keluar"),
+      description: text(raw.description, raw.note, raw.catatan, raw.ket),
       amount: Math.abs(amount),
       date: text(raw.date, raw.tanggal, raw.create_date),
       kind,
@@ -294,15 +295,18 @@ export function mapMutabaahList(value: unknown): Mutabaah[] {
   return arrayFrom(unwrapOdooData(value)).map((item) => {
     const raw = record(item);
     const siswa = nested(raw, ["siswa", "santri"]);
+    const scoreDisplay = text(raw.skor_display, raw.score_display);
+    const scoreParts = scoreDisplay.match(/(\d+)\s*(?:dari|\/)\s*(\d+)/i);
     return {
-      id: numberValue(raw.id),
-      name: text(raw.name, raw.reference, "Mutabaah"),
+      id: numberValue(raw.id, raw.mutabaah_id),
+      name: text(raw.name, raw.reference, raw.no_ref, raw.nomor, raw.mutabaah_id ? `PR/${raw.mutabaah_id}` : "Mutabaah"),
       santriId: idFrom(raw.siswa_id ?? siswa.id),
       santriName: text(raw.siswa_name, raw.santri_name, siswa.name, labelFromRelation(raw.siswa_id), "Santri"),
+      kelas: text(raw.kelas, raw.class_name, siswa.kelas, siswa.class_name),
       sesiName: text(raw.sesi_name, labelFromRelation(raw.sesi_id)),
       tanggal: text(raw.tgl, raw.tanggal, raw.date),
-      totalSkor: numberValue(raw.total_skor, raw.skor, raw.score),
-      maxSkor: numberValue(raw.max_skor, raw.total_max, raw.max_score, raw.total_skor, 100),
+      totalSkor: numberValue(raw.total_skor, raw.skor, raw.score, scoreParts?.[1]),
+      maxSkor: numberValue(raw.max_skor, raw.total_max, raw.max_score, scoreParts?.[2], raw.total_skor, 100),
       catatan: text(raw.catatan, raw.note),
     };
   }).filter((item) => item.id > 0);
@@ -311,11 +315,21 @@ export function mapMutabaahList(value: unknown): Mutabaah[] {
 export function mapTahfidzOptionList(value: unknown): TahfidzMasterOption[] {
   return arrayFrom(unwrapOdooData(value)).map((item) => {
     const raw = record(item);
+    const number = numberValue(raw.number);
+    const ayatNumber = numberValue(raw.ayat, raw.nomor_ayat);
+    const rawName = text(
+      raw.name,
+      raw.nama,
+      raw.display_name,
+      ayatNumber ? `Ayat ${ayatNumber}` : undefined,
+      number ? `Pilihan ${number}` : undefined,
+      "Pilihan",
+    );
     return {
       id: numberValue(raw.id),
-      name: text(raw.name, raw.nama, raw.display_name, "Pilihan"),
+      name: number && raw.name ? `${number}. ${rawName}` : rawName,
       halaman: numberValue(raw.halaman, raw.page) || undefined,
-      ayat: numberValue(raw.ayat, raw.nomor_ayat) || undefined,
+      ayat: numberValue(raw.jml_ayat, raw.jumlah_ayat, raw.total_ayat, raw.ayat, raw.nomor_ayat) || undefined,
     };
   }).filter((item) => item.id > 0);
 }
@@ -330,10 +344,12 @@ export function mapTahfidzList(value: unknown): TahfidzMusyrif[] {
       tanggal: text(raw.tanggal, raw.date),
       sesiName: text(raw.sesi_name, labelFromRelation(raw.sesi_id)),
       ustadzName: text(raw.ustadz_name, labelFromRelation(raw.ustadz_id)),
-      surahName: text(raw.surah_name, labelFromRelation(raw.surah_id)),
+      surahName: text(raw.surah, raw.surah_name, labelFromRelation(raw.surah_id)),
+      ayat: text(raw.ayat, raw.ayat_range, raw.range_ayat),
       ayatAwal: text(raw.ayat_awal, labelFromRelation(raw.ayat_awal_id)),
       ayatAkhir: text(raw.ayat_akhir, labelFromRelation(raw.ayat_akhir_id)),
       nilai: text(raw.nilai, labelFromRelation(raw.nilai_id)),
+      status: text(raw.state, raw.status),
       keterangan: text(raw.keterangan, raw.catatan),
     };
   }).filter((item) => item.id > 0);

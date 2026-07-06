@@ -15,17 +15,22 @@ import { toast } from "sonner";
 import { GuruQuranHeader } from "../components/guru-quran-header";
 import {
   useAyatList,
+  useHalaqohList,
   useNilaiList,
+  useSesiList,
   useSubmitTahfidzScore,
   useSurahList,
   useTahfidzDraftDetail,
   useTahfidzHistoryDetail,
+  useTahfidzHistorySessions,
+  useTahfidzStudents,
 } from "../../application/guru-quran-queries";
 import type {
   AttendanceSession,
   Ayat,
   NilaiOption,
   Surah,
+  TahfidzHistoryDetail,
   TahfidzStudent,
 } from "../../domain/guru-quran-types";
 
@@ -39,8 +44,7 @@ export function TahfidzStudentScorePage() {
   const { attendanceId, studentId } = useParams();
   const location = useLocation();
   const routeState = (location.state ?? {}) as ScoreRouteState;
-  const session = routeState.session;
-  const student = routeState.student;
+  const absenId = Number(attendanceId) || 0;
   const tahfidzId = Number(studentId) || 0;
 
   const [selectedSurah, setSelectedSurah] = useState<Surah | null>(null);
@@ -48,42 +52,120 @@ export function TahfidzStudentScorePage() {
   const [selectedAyatAkhir, setSelectedAyatAkhir] = useState<Ayat | null>(null);
   const [lanjutSurah, setLanjutSurah] = useState(false);
   const [selectedSurahLanjutan, setSelectedSurahLanjutan] = useState<Surah | null>(null);
-  const [jumlahBaris, setJumlahBaris] = useState("");
   const [selectedNilai, setSelectedNilai] = useState<NilaiOption | null>(null);
   const [keterangan, setKeterangan] = useState("");
-  const [readonly, setReadonly] = useState(student?.status === "done");
+  const [readonly, setReadonly] = useState(false);
+
+  const halaqohQuery = useHalaqohList();
+  const activeHalaqoh = halaqohQuery.data?.[0];
+  const activeHalaqohId = routeState.session?.halaqohId || activeHalaqoh?.id;
+  const sessionsQuery = useTahfidzHistorySessions(activeHalaqohId);
+  const studentsQuery = useTahfidzStudents(absenId);
+  const sesiQuery = useSesiList();
+  const fetchedSession = sessionsQuery.data?.find((item) => item.id === absenId);
+  const session = enrichSessionWithHalaqoh(fetchedSession ?? routeState.session, activeHalaqoh);
+  const student = routeState.student ?? studentsQuery.data?.find((item) => item.tahfidzId === tahfidzId);
+  const isDoneStudent = student?.status === "done";
+  const resolvedHalaqohId = session?.halaqohId || activeHalaqoh?.id;
+  const resolvedSesiId = session?.sesiId || findSesiIdByName(sesiQuery.data ?? [], session?.sesiName);
+  const resolvedTanggal = session?.tanggal;
 
   const surahQuery = useSurahList();
   const ayatQuery = useAyatList(selectedSurah?.id);
   const ayatLanjutanQuery = useAyatList(selectedSurahLanjutan?.id);
   const nilaiQuery = useNilaiList();
   const draftDetailQuery = useTahfidzDraftDetail({
-    halaqohId: session?.halaqohId,
-    sesiId: session?.sesiId,
-    tanggal: session?.tanggal,
+    halaqohId: resolvedHalaqohId,
+    sesiId: resolvedSesiId,
+    tanggal: resolvedTanggal,
     tahfidzId,
+    enabled: tahfidzId > 0 && Boolean(resolvedHalaqohId && resolvedSesiId && resolvedTanggal) && !isDoneStudent && !readonly,
   });
-  const historyDetailQuery = useTahfidzHistoryDetail(tahfidzId, tahfidzId > 0);
+  const historyDetailQuery = useTahfidzHistoryDetail(tahfidzId, tahfidzId > 0 && (isDoneStudent || readonly));
   const submitMutation = useSubmitTahfidzScore();
 
   const draftDetail = draftDetailQuery.data;
   const historyDetail = historyDetailQuery.data;
-  const ayatAkhirOptions = lanjutSurah ? (ayatLanjutanQuery.data ?? []) : (ayatQuery.data ?? []);
   const siswaName = student?.studentName ?? "Santri";
   const siswaNis = student?.nis ? ` (${student.nis})` : "";
   const isMasterLoading = surahQuery.isLoading || nilaiQuery.isLoading;
-  const hasDraftContext = Boolean(session?.halaqohId && session?.sesiId && session?.tanggal);
+  const missingDraftFields = [
+    !resolvedHalaqohId ? "halaqoh" : "",
+    !resolvedSesiId ? "sesi" : "",
+    !resolvedTanggal ? "tanggal" : "",
+  ].filter(Boolean);
+  const hasDraftContext = missingDraftFields.length === 0;
+  const readonlyHasLanjutSurah = Boolean(
+    historyDetail?.isChangeSurah &&
+    historyDetail.surah2 &&
+    historyDetail.surah &&
+    normalizeText(historyDetail.surah2) !== normalizeText(historyDetail.surah),
+  );
+
+  useEffect(() => {
+    if (import.meta.env.VITE_API_DEBUG !== "true") return;
+
+    console.info("[guru-quran-score] list_draft context", {
+      attendanceId: absenId,
+      tahfidzId,
+      halaqohId: resolvedHalaqohId,
+      sesiId: resolvedSesiId,
+      tanggal: resolvedTanggal,
+      missing: missingDraftFields,
+      session,
+    });
+  }, [absenId, missingDraftFields, resolvedHalaqohId, resolvedSesiId, resolvedTanggal, session, tahfidzId]);
+
+  const sortedSurahOptions = useMemo(
+    () => [...(surahQuery.data ?? [])].sort((a, b) => a.number - b.number),
+    [surahQuery.data],
+  );
+
+  const filteredSurahOptions = useMemo(() => {
+    const currentNumber = draftDetail?.currentSurah?.number;
+    if (readonly || !currentNumber) return sortedSurahOptions;
+    return sortedSurahOptions.filter((item) => item.number >= currentNumber);
+  }, [draftDetail?.currentSurah?.number, readonly, sortedSurahOptions]);
+
+  const filteredSurahLanjutanOptions = useMemo(() => {
+    if (!selectedSurah) return sortedSurahOptions;
+    return sortedSurahOptions.filter((item) => item.number > selectedSurah.number);
+  }, [selectedSurah, sortedSurahOptions]);
+
+  const currentSurahId = draftDetail?.currentSurah?.id;
+  const currentAyatAwalNumber = draftDetail?.currentAyatAwal?.nomorAyat;
+  const selectedSurahId = selectedSurah?.id;
+
+  const ayatAwalOptions = useMemo(() => {
+    const options = ayatQuery.data ?? [];
+    const currentAyat = currentAyatAwalNumber;
+    const isCurrentSurah = Boolean(selectedSurahId && currentSurahId && selectedSurahId === currentSurahId);
+    if (readonly || !currentAyat || !isCurrentSurah) return options;
+    return options.filter((item) => item.nomorAyat >= currentAyat);
+  }, [ayatQuery.data, currentAyatAwalNumber, currentSurahId, readonly, selectedSurahId]);
+
+  const ayatAkhirOptions = useMemo(() => {
+    if (lanjutSurah) return ayatLanjutanQuery.data ?? [];
+
+    const options = ayatQuery.data ?? [];
+    if (!selectedAyatAwal || readonly) return options;
+    return options.filter((item) => item.nomorAyat >= selectedAyatAwal.nomorAyat);
+  }, [ayatLanjutanQuery.data, ayatQuery.data, lanjutSurah, readonly, selectedAyatAwal]);
+
+  useEffect(() => {
+    if (isDoneStudent) setReadonly(true);
+  }, [isDoneStudent]);
 
   useEffect(() => {
     if (!draftDetail?.currentSurah || selectedSurah || readonly) return;
 
-    const surah = (surahQuery.data ?? []).find((item) =>
+    const surah = sortedSurahOptions.find((item) =>
       item.id === draftDetail.currentSurah?.id ||
       item.name.toLowerCase() === draftDetail.currentSurah?.name.toLowerCase(),
     );
 
     if (surah) setSelectedSurah(surah);
-  }, [draftDetail, readonly, selectedSurah, surahQuery.data]);
+  }, [draftDetail, readonly, selectedSurah, sortedSurahOptions]);
 
   useEffect(() => {
     if (!draftDetail?.currentAyatAwal || selectedAyatAwal || readonly) return;
@@ -100,16 +182,19 @@ export function TahfidzStudentScorePage() {
     if (!historyDetail || !readonly) return;
 
     if (!selectedSurah && historyDetail.surah) {
-      const surah = findByName(surahQuery.data ?? [], historyDetail.surah);
+      const surah = findByName(sortedSurahOptions, historyDetail.surah);
       if (surah) setSelectedSurah(surah);
     }
 
-    if (historyDetail.surah2 && !selectedSurahLanjutan) {
-      const surah = findByName(surahQuery.data ?? [], historyDetail.surah2);
+    if (readonlyHasLanjutSurah && historyDetail.surah2 && !selectedSurahLanjutan) {
+      const surah = findByName(sortedSurahOptions, historyDetail.surah2);
       if (surah) {
         setLanjutSurah(true);
         setSelectedSurahLanjutan(surah);
       }
+    } else if (!readonlyHasLanjutSurah) {
+      setLanjutSurah(false);
+      setSelectedSurahLanjutan(null);
     }
 
     if (!selectedNilai && historyDetail.nilai) {
@@ -117,24 +202,27 @@ export function TahfidzStudentScorePage() {
       if (nilai) setSelectedNilai(nilai);
     }
 
-    if (!jumlahBaris && historyDetail.jmlBaris !== undefined) {
-      setJumlahBaris(String(historyDetail.jmlBaris));
-    }
-
     if (!keterangan && historyDetail.keterangan) {
       setKeterangan(historyDetail.keterangan);
     }
   }, [
     historyDetail,
-    jumlahBaris,
     keterangan,
     nilaiQuery.data,
     readonly,
+    readonlyHasLanjutSurah,
     selectedNilai,
     selectedSurah,
     selectedSurahLanjutan,
-    surahQuery.data,
+    sortedSurahOptions,
   ]);
+
+  useEffect(() => {
+    if (!lanjutSurah || !selectedSurah || selectedSurahLanjutan || readonly) return;
+
+    const nextSurah = sortedSurahOptions.find((item) => item.number > selectedSurah.number);
+    if (nextSurah) setSelectedSurahLanjutan(nextSurah);
+  }, [lanjutSurah, readonly, selectedSurah, selectedSurahLanjutan, sortedSurahOptions]);
 
   useEffect(() => {
     if (!historyDetail || !readonly) return;
@@ -161,18 +249,15 @@ export function TahfidzStudentScorePage() {
 
   const halamanAwal = selectedAyatAwal?.page ? String(selectedAyatAwal.page) : "";
   const halamanAkhir = selectedAyatAkhir?.page ? String(selectedAyatAkhir.page) : "";
+  const lastTahfidzDisplay = readonly
+    ? formatHistoryTahfidz(historyDetail) || parseLastTahfidz(draftDetail?.lastTahfidz)
+    : parseLastTahfidz(draftDetail?.lastTahfidz);
 
   const statusMessage = useMemo(() => {
-    if (readonly) return "Data penilaian sudah selesai dan ditampilkan dalam mode baca.";
-    if (!hasDraftContext) return "Data sesi tidak lengkap dari navigasi. Kamu masih bisa input nilai, tetapi hafalan terakhir tidak bisa diprefill.";
+    if (!hasDraftContext) return `Data sesi belum lengkap (${missingDraftFields.join(", ")}). Surah dan ayat awal belum bisa diprefill.`;
     if (draftDetailQuery.isLoading) return "Memuat hafalan terakhir santri...";
-    if (draftDetail?.lastTahfidz) return `Hafalan terakhir: ${draftDetail.lastTahfidz}`;
     return "Lengkapi nilai hafalan santri hari ini.";
-  }, [draftDetail?.lastTahfidz, draftDetailQuery.isLoading, hasDraftContext, readonly]);
-
-  useEffect(() => {
-    if (historyDetail && !readonly) setReadonly(true);
-  }, [historyDetail, readonly]);
+  }, [draftDetailQuery.isLoading, hasDraftContext, missingDraftFields]);
 
   async function handleSubmit() {
     if (readonly) {
@@ -199,13 +284,12 @@ export function TahfidzStudentScorePage() {
         ayat_awal: selectedAyatAwal.id,
         ayat_akhir: selectedAyatAkhir.id,
         nilai_id: selectedNilai.id,
-        jml_baris: Number(jumlahBaris) || 0,
+        jml_baris: 0,
         keterangan: keterangan.trim() || undefined,
       });
 
       toast.success("Penilaian berhasil disimpan");
-      setReadonly(true);
-      historyDetailQuery.refetch();
+      navigate(`/guru-quran/tahfidz/penilaian/${attendanceId}`, { state: { session } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal menyimpan penilaian");
     }
@@ -237,52 +321,111 @@ export function TahfidzStudentScorePage() {
           </div>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-[#B3E0FF] bg-[#F0F9FF] p-4">
-          <p className="text-sm font-semibold text-[#344054]">{statusMessage}</p>
-        </div>
+        {lastTahfidzDisplay ? (
+          <TahfidzTerakhirCard value={lastTahfidzDisplay} />
+        ) : (
+          <div className="mt-4 rounded-2xl border border-[#B3E0FF] bg-[#F0F9FF] p-4">
+            <p className="text-sm font-semibold text-[#344054]">{statusMessage}</p>
+          </div>
+        )}
 
-        <div className="mt-5 space-y-4 rounded-2xl border border-[#EAECF0] bg-white p-5 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-          <p className="border-b border-[#F2F4F7] pb-2 text-base font-bold text-[#101828]">Penilaian Tahfidz</p>
-
-          {isMasterLoading ? (
-            <div className="flex items-center justify-center py-10 text-sm font-semibold text-[#667085]">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Memuat master penilaian...
+        {isMasterLoading ? (
+          <div className="mt-5 flex items-center justify-center rounded-2xl border border-[#EAECF0] bg-white py-10 text-sm font-semibold text-[#667085]">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Memuat master penilaian...
+          </div>
+        ) : (
+          <>
+            <div className="mt-5">
+              <FormLabel>Surah</FormLabel>
+              <SimpleSelect
+                disabled={readonly}
+                placeholder="Pilih Surah"
+                value={selectedSurah?.name}
+                options={filteredSurahOptions}
+                getKey={(s) => s.id}
+                getLabel={(s) => `${s.number}. ${s.name}`}
+                onSelect={(surah) => {
+                  setSelectedSurah(surah);
+                  setSelectedAyatAwal(null);
+                  setSelectedAyatAkhir(null);
+                  setLanjutSurah(false);
+                  setSelectedSurahLanjutan(null);
+                }}
+              />
             </div>
-          ) : (
-            <>
-              <div>
-                <FormLabel>Surah</FormLabel>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <div className="rounded-xl border border-[#B3E0FF] bg-[#F0F9FF] px-4 py-3 text-sm font-bold text-[#288DE5]">
+                Jumlah Ayat: {selectedSurah?.jmlAyat ?? "-"}
+              </div>
+
+              <label className="flex items-center gap-3 text-sm font-semibold text-[#344054]">
+                <input
+                  type="checkbox"
+                  checked={lanjutSurah}
+                  disabled={readonly || !selectedSurah}
+                  onChange={(event) => {
+                    const isChecked = event.target.checked;
+                    setLanjutSurah(isChecked);
+                    setSelectedSurahLanjutan(null);
+                    setSelectedAyatAkhir(null);
+                    if (isChecked && selectedSurah) {
+                      const nextSurah = sortedSurahOptions.find((item) => item.number > selectedSurah.number);
+                      setSelectedSurahLanjutan(nextSurah ?? null);
+                    }
+                  }}
+                  className="h-5 w-5 accent-[#288DE5]"
+                />
+                Lanjut Surah
+              </label>
+            </div>
+
+            {lanjutSurah && (
+              <div className="mt-4">
+                <FormLabel>Surah Lanjutan</FormLabel>
                 <SimpleSelect
                   disabled={readonly}
-                  placeholder="Pilih Surah"
-                  value={selectedSurah?.name}
-                  options={surahQuery.data ?? []}
+                  placeholder="Pilih Surah Lanjutan"
+                  value={selectedSurahLanjutan?.name}
+                  options={filteredSurahLanjutanOptions}
                   getKey={(s) => s.id}
                   getLabel={(s) => `${s.number}. ${s.name}`}
                   onSelect={(surah) => {
-                    setSelectedSurah(surah);
-                    setSelectedAyatAwal(null);
+                    setSelectedSurahLanjutan(surah);
                     setSelectedAyatAkhir(null);
                   }}
                 />
               </div>
+            )}
 
-              <div className="grid grid-cols-2 gap-4">
+            <div className="mt-5 space-y-4 rounded-2xl border border-[#EAECF0] bg-white p-5 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+              <p className="border-b border-[#F2F4F7] pb-2 text-base font-bold text-[#101828]">Penilaian Tahfidz</p>
+
+              <div className="space-y-4">
                 <div>
                   <FormLabel>Ayat Awal</FormLabel>
                   <SimpleSelect
                     disabled={readonly || !selectedSurah}
                     placeholder="Pilih ayat"
                     value={selectedAyatAwal ? String(selectedAyatAwal.nomorAyat) : undefined}
-                    options={ayatQuery.data ?? []}
+                    options={ayatAwalOptions}
                     getKey={(a) => a.id}
                     getLabel={(a) => String(a.nomorAyat)}
-                    onSelect={setSelectedAyatAwal}
+                    onSelect={(ayat) => {
+                      setSelectedAyatAwal(ayat);
+                      if (!lanjutSurah && selectedAyatAkhir && selectedAyatAkhir.nomorAyat < ayat.nomorAyat) {
+                        setSelectedAyatAkhir(null);
+                      }
+                    }}
                   />
                 </div>
                 <div>
-                  <FormLabel>Ayat Akhir</FormLabel>
+                  <FormLabel>
+                    {lanjutSurah && selectedSurahLanjutan
+                      ? `Ayat Akhir (${selectedSurahLanjutan.name})`
+                      : "Ayat Akhir"}
+                  </FormLabel>
                   <SimpleSelect
                     disabled={readonly || !selectedSurah}
                     placeholder="Pilih ayat"
@@ -294,39 +437,6 @@ export function TahfidzStudentScorePage() {
                   />
                 </div>
               </div>
-
-              <label className="flex items-center gap-3 rounded-xl border border-[#EAECF0] bg-[#FAFAFA] px-4 py-3 text-sm font-semibold text-[#344054]">
-                <input
-                  type="checkbox"
-                  checked={lanjutSurah}
-                  disabled={readonly}
-                  onChange={(event) => {
-                    setLanjutSurah(event.target.checked);
-                    setSelectedSurahLanjutan(null);
-                    setSelectedAyatAkhir(null);
-                  }}
-                  className="h-4 w-4 accent-[#288DE5]"
-                />
-                Lanjut ke surah berikutnya
-              </label>
-
-              {lanjutSurah && (
-                <div>
-                  <FormLabel>Surah Lanjutan</FormLabel>
-                  <SimpleSelect
-                    disabled={readonly}
-                    placeholder="Pilih Surah Lanjutan"
-                    value={selectedSurahLanjutan?.name}
-                    options={surahQuery.data ?? []}
-                    getKey={(s) => s.id}
-                    getLabel={(s) => `${s.number}. ${s.name}`}
-                    onSelect={(surah) => {
-                      setSelectedSurahLanjutan(surah);
-                      setSelectedAyatAkhir(null);
-                    }}
-                  />
-                </div>
-              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <ReadonlyInput label="Halaman Awal" value={halamanAwal || "-"} />
@@ -347,19 +457,6 @@ export function TahfidzStudentScorePage() {
               </div>
 
               <div>
-                <FormLabel>Jumlah Baris</FormLabel>
-                <input
-                  type="number"
-                  min={0}
-                  value={jumlahBaris}
-                  disabled={readonly}
-                  onChange={(e) => setJumlahBaris(e.target.value)}
-                  placeholder="0"
-                  className="w-full rounded-xl border border-[#EAECF0] bg-[#FAFAFA] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#288DE5] disabled:bg-[#F2F4F7] disabled:text-gray-500"
-                />
-              </div>
-
-              <div>
                 <FormLabel>Keterangan / Catatan</FormLabel>
                 <textarea
                   value={keterangan}
@@ -370,11 +467,12 @@ export function TahfidzStudentScorePage() {
                   className="w-full resize-none rounded-xl border border-[#EAECF0] bg-[#FAFAFA] px-4 py-3 text-sm font-medium outline-none transition focus:border-[#288DE5] disabled:bg-[#F2F4F7] disabled:text-gray-500"
                 />
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </main>
 
+      {!readonly && (
       <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-gray-100 bg-white px-5 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
         <button
           type="button"
@@ -384,24 +482,80 @@ export function TahfidzStudentScorePage() {
         >
           {submitMutation.isPending ? (
             <Loader2 className="h-5 w-5 animate-spin" />
-          ) : readonly ? (
-            "Kembali ke Penilaian"
           ) : (
             "Simpan Penilaian"
           )}
         </button>
       </div>
+      )}
     </div>
   );
 }
 
+function enrichSessionWithHalaqoh(
+  session?: AttendanceSession,
+  halaqoh?: { id: number; name: string },
+) {
+  if (!session) return undefined;
+  if (!halaqoh) return session;
+
+  return {
+    ...session,
+    halaqohId: session.halaqohId || halaqoh.id,
+    halaqohName: session.halaqohName && session.halaqohName !== "-" ? session.halaqohName : halaqoh.name,
+  };
+}
+
+function parseLastTahfidz(value?: string) {
+  if (!value) return "";
+
+  const [surahPart, ayatPart] = value.split("#").map((part) => part.trim());
+  if (!surahPart && !ayatPart) return "";
+  if (!ayatPart) return surahPart;
+
+  return `${surahPart} : ${ayatPart}`;
+}
+
+function formatHistoryTahfidz(history?: TahfidzHistoryDetail | null) {
+  if (!history?.surah || history.ayatAwal === undefined || history.ayatAkhir === undefined) return "";
+
+  const surahText = history.isChangeSurah && history.surah2 && normalizeText(history.surah2) !== normalizeText(history.surah)
+    ? `${history.surah} - ${history.surah2}`
+    : history.surah;
+
+  return `${surahText} : ayat ${history.ayatAwal} - ${history.ayatAkhir}`;
+}
+
+function normalizeText(value?: string) {
+  return value?.toLowerCase().trim() ?? "";
+}
+
 function findByName<T extends { name: string }>(items: T[], value: string) {
-  const normalized = value.toLowerCase().trim();
-  return items.find((item) => item.name.toLowerCase().trim() === normalized);
+  const normalized = normalizeText(value);
+  return items.find((item) => normalizeText(item.name) === normalized);
+}
+
+function findSesiIdByName(items: Array<{ id: number; name: string }>, sesiName?: string) {
+  const normalizedName = sesiName?.toLowerCase().trim();
+  if (!normalizedName || normalizedName === "-") return undefined;
+
+  return items.find((item) => item.name.toLowerCase().trim() === normalizedName)?.id;
 }
 
 function FormLabel({ children }: { children: ReactNode }) {
   return <p className="mb-2 text-sm font-medium text-[#344054]">{children}</p>;
+}
+
+function TahfidzTerakhirCard({ value }: { value: string }) {
+  return (
+    <div className="mt-4 rounded-2xl border border-[#B3E0FF] bg-[#F0F9FF] p-4 shadow-[0_2px_8px_rgba(40,141,229,0.08)]">
+      <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[#288DE5]">
+        <BookOpen className="h-4 w-4" />
+        <span>Tahfidz Terakhir</span>
+      </div>
+      <p className="text-base font-semibold leading-relaxed text-[#101828]">{value}</p>
+    </div>
+  );
 }
 
 function InfoItem({
@@ -456,6 +610,18 @@ function SimpleSelect<T>({
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const filteredOptions = useMemo(() => {
+    const keyword = search.toLowerCase().trim();
+    if (!keyword) return options;
+
+    return options.filter((item) => getLabel(item).toLowerCase().includes(keyword));
+  }, [getLabel, options, search]);
+
+  function closeDropdown() {
+    setOpen(false);
+    setSearch("");
+  }
 
   return (
     <div className="relative">
@@ -477,26 +643,45 @@ function SimpleSelect<T>({
             type="button"
             className="fixed inset-0 z-10 cursor-default"
             aria-label="Tutup pilihan"
-            onClick={() => setOpen(false)}
+            onClick={closeDropdown}
           />
-          <ul className="absolute left-0 top-full z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
-            {options.map((opt) => (
-              <li key={getKey(opt)}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSelect(opt);
-                    setOpen(false);
-                  }}
-                  className={`w-full px-4 py-2.5 text-left text-sm transition hover:bg-gray-50 ${
-                    getLabel(opt) === value ? "font-semibold text-[#288DE5]" : "text-gray-700"
-                  }`}
-                >
-                  {getLabel(opt)}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+            <div className="border-b border-[#F2F4F7] p-2">
+              <input
+                type="text"
+                value={search}
+                autoFocus
+                placeholder="Ketik untuk mencari..."
+                onChange={(event) => setSearch(event.target.value)}
+                onClick={(event) => event.stopPropagation()}
+                className="w-full rounded-lg border border-[#EAECF0] bg-[#FAFAFA] px-3 py-2 text-sm font-medium outline-none transition focus:border-[#288DE5]"
+              />
+            </div>
+            <ul className="max-h-52 overflow-y-auto py-1">
+              {filteredOptions.length === 0 ? (
+                <li className="px-4 py-3 text-sm font-medium text-gray-400">
+                  Tidak ada pilihan
+                </li>
+              ) : (
+                filteredOptions.map((opt) => (
+                  <li key={getKey(opt)}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelect(opt);
+                        closeDropdown();
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-sm transition hover:bg-gray-50 ${
+                        getLabel(opt) === value ? "font-semibold text-[#288DE5]" : "text-gray-700"
+                      }`}
+                    >
+                      {getLabel(opt)}
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
         </>
       )}
     </div>

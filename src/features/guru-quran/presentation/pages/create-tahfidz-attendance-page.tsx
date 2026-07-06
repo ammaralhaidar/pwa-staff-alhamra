@@ -102,13 +102,11 @@ export function CreateTahfidzAttendancePage() {
   }
 
   return (
-    <div className="relative mx-auto flex h-svh max-w-[430px] flex-col bg-[#EFF6FF]">
-      <div className="z-40 shrink-0">
-        <GuruQuranHeader title="Tambah Absen Tahfidz" onBack={() => navigate(-1)} />
-      </div>
+    <div className="flex min-h-svh flex-col bg-[#EFF6FF]">
+      <GuruQuranHeader title="Tambah Absen Tahfidz" onBack={() => navigate(-1)} />
 
-      <main className="flex-1 overflow-y-auto px-5 pb-32 pt-5">
-        <div className="mb-6 space-y-4 rounded-2xl border border-[#EAECF0] bg-white p-5 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+      <main className="flex-1 px-5 pb-10 pt-5 flex flex-col gap-4">
+        <div className="space-y-4 rounded-2xl border border-[#EAECF0] bg-white p-5 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
           <div>
             <FormLabel>Tanggal</FormLabel>
             <div className="flex items-center gap-3 rounded-xl border border-[#EAECF0] bg-[#FAFAFA] px-4 py-3">
@@ -147,7 +145,7 @@ export function CreateTahfidzAttendancePage() {
           </div>
         </div>
 
-        <div className="mb-4 flex items-center justify-between px-1">
+        <div className="mb-1 flex items-center justify-between px-1">
           <p className="text-base font-bold text-[#101828]">Daftar Siswa</p>
           <span className="rounded-full bg-[#E0F2FE] px-2.5 py-0.5 text-xs font-bold text-[#0EA5E9]">{siswaList.length} Siswa</span>
         </div>
@@ -167,15 +165,16 @@ export function CreateTahfidzAttendancePage() {
             ))}
           </div>
         )}
-      </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none">
-        <div className="mx-auto max-w-[430px] w-full bg-white border-t border-gray-100 px-5 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] pointer-events-auto">
-          <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="flex h-[50px] w-full items-center justify-center rounded-xl bg-[#288DE5] text-[15px] font-bold text-white shadow-md shadow-[#288DE5]/20 transition active:scale-[0.98] disabled:opacity-60">
-            {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Simpan & Konfirmasi"}
-          </button>
-        </div>
-      </div>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="mt-6 flex h-[50px] w-full items-center justify-center rounded-xl bg-[#288DE5] text-[15px] font-bold text-white shadow-md shadow-[#288DE5]/20 transition active:scale-[0.98] disabled:opacity-60"
+        >
+          {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Simpan & Konfirmasi"}
+        </button>
+      </main>
     </div>
   );
 }

@@ -15,6 +15,7 @@ type Props = {
   title: string;
   description?: string;
   confirmLabel: string;
+  tone?: "blue" | "red" | "orange" | "green";
   requireNote?: boolean;
   loading?: boolean;
   onOpenChange: (open: boolean) => void;
@@ -26,6 +27,7 @@ export function DecisionDialog({
   title,
   description,
   confirmLabel,
+  tone = "blue",
   requireNote,
   loading,
   onOpenChange,
@@ -44,26 +46,33 @@ export function DecisionDialog({
     if (!loading) setNote("");
   }
 
+  const toneClass = {
+    blue: "bg-[#288DE5] hover:bg-[#1F7CD4]",
+    red: "bg-[#DC2626] hover:bg-[#B91C1C]",
+    orange: "bg-[#EA580C] hover:bg-[#C2410C]",
+    green: "bg-[#059669] hover:bg-[#047857]",
+  }[tone];
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[360px] rounded-3xl">
+      <DialogContent className="max-w-[360px] rounded-3xl border-0 p-5">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description ? <DialogDescription>{description}</DialogDescription> : null}
+          <DialogTitle className="text-lg font-bold text-slate-950">{title}</DialogTitle>
+          {description ? <DialogDescription className="text-sm font-medium leading-relaxed text-slate-600">{description}</DialogDescription> : null}
         </DialogHeader>
         {requireNote ? (
           <Textarea
             value={note}
             onChange={(event) => setNote(event.target.value)}
             placeholder="Tuliskan alasan..."
-            className="min-h-28 rounded-2xl"
+            className="min-h-28 rounded-2xl border-slate-200 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus-visible:ring-blue-500/20"
           />
         ) : null}
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
-            Batal
+        <DialogFooter className="flex-col-reverse gap-2 pt-1 sm:flex-col-reverse sm:space-x-0">
+          <Button type="button" variant="outline" className="h-10 w-full rounded-xl border-slate-300 font-bold text-slate-900" onClick={() => handleOpenChange(false)} disabled={loading}>
+            Kembali
           </Button>
-          <Button type="button" onClick={handleConfirm} disabled={isDisabled}>
+          <Button type="button" className={`h-10 w-full rounded-xl font-bold text-white shadow-none ${toneClass}`} onClick={handleConfirm} disabled={isDisabled}>
             {loading ? "Memproses..." : confirmLabel}
           </Button>
         </DialogFooter>

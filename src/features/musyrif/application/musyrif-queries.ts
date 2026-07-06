@@ -22,7 +22,7 @@ import {
   fetchWalletHistory,
   topupWallet,
 } from "../api/musyrif-api";
-import type { WalletHistoryType } from "../domain/musyrif-types";
+import type { MutabaahListParams, WalletHistoryType } from "../domain/musyrif-types";
 
 export const musyrifKeys = {
   all: ["musyrif"] as const,
@@ -35,6 +35,8 @@ export const musyrifKeys = {
   balance: (id: number) => [...musyrifKeys.students(), "balance", id] as const,
   history: (id: number, type: WalletHistoryType) => [...musyrifKeys.students(), "history", id, type] as const,
   mutabaah: () => [...musyrifKeys.all, "mutabaah"] as const,
+  mutabaahList: (params?: MutabaahListParams) =>
+    [...musyrifKeys.mutabaah(), "list", params?.tgl ?? "", params?.sesi_id ?? "", params?.siswa_id ?? "", params?.search ?? ""] as const,
   mutabaahSesi: () => [...musyrifKeys.mutabaah(), "sesi"] as const,
   mutabaahActivities: (sesiId?: number) => [...musyrifKeys.mutabaah(), "activities", sesiId ?? "all"] as const,
   tahfidz: () => [...musyrifKeys.all, "tahfidz"] as const,
@@ -132,8 +134,8 @@ export function useChangeStudentPin() {
   });
 }
 
-export function useMutabaahList() {
-  return useQuery({ queryKey: musyrifKeys.mutabaah(), queryFn: fetchMutabaahList });
+export function useMutabaahList(params?: MutabaahListParams) {
+  return useQuery({ queryKey: musyrifKeys.mutabaahList(params), queryFn: () => fetchMutabaahList(params) });
 }
 
 export function useMutabaahSesi() {

@@ -121,6 +121,7 @@ export const fallbackMutabaah: Mutabaah[] = [
     name: "MUT/2026/001",
     santriId: 101,
     santriName: "Ahmad Farhan",
+    kelas: "Kelas VIII A",
     sesiName: "Pagi",
     tanggal: "2026-06-23",
     totalSkor: 30,
@@ -135,9 +136,9 @@ export const fallbackTahfidzOptions: TahfidzMasterOption[] = [
 ];
 
 export const fallbackSurah: TahfidzMasterOption[] = [
-  { id: 1, name: "Al-Fatihah" },
-  { id: 2, name: "Al-Baqarah" },
-  { id: 3, name: "Ali Imran" },
+  { id: 1, name: "1. Al-Fatihah", ayat: 7 },
+  { id: 2, name: "2. Al-Baqarah", ayat: 286 },
+  { id: 3, name: "3. Ali Imran", ayat: 200 },
 ];
 
 export const fallbackAyat: TahfidzMasterOption[] = Array.from({ length: 12 }, (_, index) => ({

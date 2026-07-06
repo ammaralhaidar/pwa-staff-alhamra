@@ -22,6 +22,7 @@ import type {
   CreateTahfidzMusyrifPayload,
   Mutabaah,
   MutabaahActivity,
+  MutabaahListParams,
   MutabaahSesi,
   MusyrifPerijinan,
   MusyrifStudent,
@@ -122,8 +123,8 @@ export async function changeStudentPin(payload: ChangePinPayload) {
   return assertOdooSuccess(await postOdoo(apiEndpoints.musyrif.ubahPin, compactPayload(payload)));
 }
 
-export async function fetchMutabaahList(): Promise<Mutabaah[]> {
-  const response = await postOdoo(apiEndpoints.mutabaah.list, {});
+export async function fetchMutabaahList(params?: MutabaahListParams): Promise<Mutabaah[]> {
+  const response = await postOdoo(apiEndpoints.mutabaah.list, compactPayload(params ?? {}));
   assertOdooSuccess(response);
   return mapMutabaahList(response);
 }

@@ -26,6 +26,8 @@ export function TahfidzListPage() {
     return source.filter((item) => {
       return (
         item.surahName?.toLowerCase().includes(keyword) ||
+        item.ayat?.toLowerCase().includes(keyword) ||
+        item.nilai?.toLowerCase().includes(keyword) ||
         item.tanggal?.toLowerCase().includes(keyword)
       );
     });

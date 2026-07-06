@@ -61,7 +61,7 @@ export function SantriDetailPage() {
         toast.success("Topup dompet berhasil.");
         setTopupOpen(false);
       },
-      onError: () => toast.error("Topup gagal."),
+      onError: (error) => toast.error(error instanceof Error ? error.message : "Topup gagal. Periksa nominal dan saldo uang saku."),
     });
   };
 
@@ -80,7 +80,7 @@ export function SantriDetailPage() {
         toast.success("PIN berhasil diubah.");
         setPinOpen(false);
       },
-      onError: () => toast.error("Gagal mengubah PIN."),
+      onError: (error) => toast.error(error instanceof Error ? error.message : "Gagal mengubah PIN."),
     });
   };
 
@@ -226,7 +226,15 @@ export function SantriDetailPage() {
         </Button>
       </div>
 
-      <MoneyActionDialog open={topupOpen} onOpenChange={setTopupOpen} isLoading={topupMutation.isPending} onSubmit={submitTopup} />
+      <MoneyActionDialog
+        open={topupOpen}
+        onOpenChange={setTopupOpen}
+        isLoading={topupMutation.isPending}
+        studentName={student?.name}
+        uangSaku={uangSaku}
+        dompet={dompet}
+        onSubmit={submitTopup}
+      />
       <PinDialog open={pinOpen} onOpenChange={setPinOpen} isLoading={pinMutation.isPending} onSubmit={submitPin} />
     </div>
   );

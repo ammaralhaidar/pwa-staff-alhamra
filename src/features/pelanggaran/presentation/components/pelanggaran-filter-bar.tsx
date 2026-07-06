@@ -25,7 +25,9 @@ export function PelanggaranFilterBar({ filter, onChange }: Props) {
       </Card>
       <div className="grid grid-cols-2 gap-3">
         <Select value={filter.timeRange} onValueChange={(value) => onChange({ ...filter, timeRange: value as PelanggaranFilter["timeRange"] })}>
-          <SelectTrigger className="rounded-2xl bg-white"><SelectValue placeholder="Waktu" /></SelectTrigger>
+          <SelectTrigger className="h-11 w-full justify-between rounded-2xl bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm">
+            <SelectValue placeholder="Waktu" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="today">Hari Ini</SelectItem>
             <SelectItem value="7days">7 Hari</SelectItem>
@@ -34,7 +36,9 @@ export function PelanggaranFilterBar({ filter, onChange }: Props) {
           </SelectContent>
         </Select>
         <Select value={filter.status} onValueChange={(value) => onChange({ ...filter, status: value as PelanggaranFilter["status"] })}>
-          <SelectTrigger className="rounded-2xl bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="h-11 w-full justify-between rounded-2xl bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua</SelectItem>
             <SelectItem value="draft">Draft</SelectItem>

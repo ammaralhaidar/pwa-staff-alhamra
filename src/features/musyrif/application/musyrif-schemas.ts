@@ -30,9 +30,6 @@ export function validateTahfidzPayload(payload: Partial<CreateTahfidzMusyrifPayl
   if (!payload.surah_id) return "Pilih surah.";
   if (!payload.ayat_awal_id) return "Pilih ayat awal.";
   if (!payload.ayat_akhir_id) return "Pilih ayat akhir.";
-  if (payload.ayat_awal_id && payload.ayat_akhir_id && payload.ayat_awal_id > payload.ayat_akhir_id) {
-    return "Ayat awal tidak boleh lebih besar dari ayat akhir.";
-  }
   if (!payload.nilai_id) return "Pilih nilai.";
   return null;
 }

@@ -8,8 +8,8 @@ export function MusyrifDataMenuPage() {
   return (
     <main className="mx-auto max-w-[430px]">
       <MusyrifHeader
-        title="Data Musyrif"
-        subtitle="Data tahfidz dan musyrif"
+        title="Musyrif/Tahfidz"
+        subtitle="Input dan riwayat tahfidz musyrif"
         onBack={() => navigate("/musyrif")}
       />
       <section className="space-y-4 px-4 py-6">

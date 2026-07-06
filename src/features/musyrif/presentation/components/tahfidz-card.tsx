@@ -4,6 +4,7 @@ import type { TahfidzMusyrif } from "../../domain/musyrif-types";
 export function TahfidzCard({ item }: { item: TahfidzMusyrif }) {
   const isMumtaz = item.nilai?.toLowerCase() === "mumtaz" || item.nilai?.toLowerCase() === "a";
   const displayNilai = isMumtaz ? "Mumtaz" : (item.nilai || "Jayyid");
+  const statusText = item.status?.toLowerCase() === "done" ? "Selesai" : item.status || "Selesai";
 
   // Format date if needed
   const dateParts = item.tanggal ? item.tanggal.split("-") : [];
@@ -13,6 +14,7 @@ export function TahfidzCard({ item }: { item: TahfidzMusyrif }) {
   const cleanAyat = (val?: string) => val ? val.replace(/Ayat\s+/i, "") : "-";
   const startAyat = cleanAyat(item.ayatAwal);
   const endAyat = cleanAyat(item.ayatAkhir);
+  const displayAyat = item.ayat || `${startAyat} - ${endAyat}`;
 
   return (
     <Card className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-md transition text-left flex flex-col gap-4">
@@ -21,7 +23,7 @@ export function TahfidzCard({ item }: { item: TahfidzMusyrif }) {
           {formattedDate || "-"}
         </h3>
         <span className="rounded-full bg-emerald-50 border border-emerald-100/50 px-3 py-0.5 text-[11px] font-extrabold text-emerald-600">
-          Selesai
+          {statusText}
         </span>
       </div>
 
@@ -32,9 +34,7 @@ export function TahfidzCard({ item }: { item: TahfidzMusyrif }) {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-slate-400">Ayat:</span>
-          <span className="font-bold text-slate-700">
-            {startAyat} - {endAyat}
-          </span>
+          <span className="font-bold text-slate-700">{displayAyat}</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-slate-400">Nilai:</span>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, Copy, X, Check, Gavel, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, X, Check, Gavel, RefreshCw, Search } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { isDemoFallbackEnabled } from "@/lib/helpers";
 import { fallbackPelanggaranList, fallbackTindakanOptions } from "../../application/pelanggaran-fallback-data";
 import { useCancelPelanggaran, useDecidePelanggaran, usePelanggaranDetail, useProcessPelanggaran, useTindakanOptions } from "../../application/pelanggaran-queries";
 import { validateProcessPelanggaran } from "../../application/pelanggaran-schemas";
-import type { PelanggaranAccessType } from "../../domain/pelanggaran-types";
+import type { PelanggaranAccessType, TindakanOption } from "../../domain/pelanggaran-types";
 import { ActionDialog } from "../components/action-dialog";
 import { appAssets } from "@/shared/assets/app-assets";
 
@@ -40,6 +40,8 @@ export function PelanggaranDetailPage({ accessType, isBinaan = false }: { access
   // Form states (handled directly in the page as per screen mockup)
   const [tindakanId, setTindakanId] = useState<number | null>(null);
   const [deskripsiTindakan, setDeskripsiTindakan] = useState("");
+  const [tindakanPickerOpen, setTindakanPickerOpen] = useState(false);
+  const [tindakanSearch, setTindakanSearch] = useState("");
 
   const fallbackDetail = useMemo(() => fallbackPelanggaranList.find((item) => item.id === pelanggaranId) ?? fallbackPelanggaranList[0], [pelanggaranId]);
   const apiDetail = query.data?.id ? query.data : undefined;
@@ -47,6 +49,15 @@ export function PelanggaranDetailPage({ accessType, isBinaan = false }: { access
   const isTindakanFallbackMode = tindakanQuery.isError && isDemoFallbackEnabled();
   const data = isFallbackMode ? fallbackDetail : apiDetail;
   const tindakanOptions = isTindakanFallbackMode ? fallbackTindakanOptions : tindakanQuery.data ?? [];
+  const selectedTindakan = useMemo(
+    () => tindakanOptions.find((item) => item.id === tindakanId),
+    [tindakanId, tindakanOptions],
+  );
+  const filteredTindakanOptions = useMemo(() => {
+    const keyword = tindakanSearch.trim().toLowerCase();
+    if (!keyword) return tindakanOptions;
+    return tindakanOptions.filter((item) => item.name.toLowerCase().includes(keyword));
+  }, [tindakanOptions, tindakanSearch]);
   const isNotFound = !isInvalidId && query.isSuccess && !apiDetail;
 
   const canCancel = Boolean(data && (data.status === "draft" || data.status === "proses" || (data.status === "validasi" && isBinaan)));
@@ -304,24 +315,20 @@ export function PelanggaranDetailPage({ accessType, isBinaan = false }: { access
                 {!tindakanQuery.isError && !tindakanQuery.isLoading && tindakanOptions.length === 0 ? <p className="text-xs font-semibold text-slate-400">Belum ada master tindakan tersedia.</p> : null}
                 <div>
                   <p className="text-xs font-semibold text-slate-400 mb-1.5">Tindakan</p>
-                  <div className="relative">
-                    <select
-                      value={tindakanId ?? ""}
-                      onChange={(e) => setTindakanId(Number(e.target.value))}
-                      disabled={processMutation.isPending || tindakanQuery.isLoading || tindakanOptions.length === 0}
-                      className="w-full h-12 rounded-[12px] border border-slate-200 bg-white px-4 pr-10 text-sm font-semibold text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                    >
-                      <option value="">-</option>
-                      {tindakanOptions.map((opt) => (
-                        <option key={opt.id} value={opt.id}>
-                          {opt.name}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTindakanSearch("");
+                      setTindakanPickerOpen(true);
+                    }}
+                    disabled={processMutation.isPending || tindakanQuery.isLoading || tindakanOptions.length === 0}
+                    className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[12px] border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-800 transition focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+                  >
+                    <span className={`min-w-0 flex-1 ${selectedTindakan ? "line-clamp-2" : "text-slate-400"}`}>{selectedTindakan?.name ?? "-"}</span>
+                    <span className="shrink-0 text-slate-400">
                       <Gavel className="size-4" />
-                    </div>
-                  </div>
+                    </span>
+                  </button>
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-slate-400 mb-1.5">Deskripsi Tindakan</p>
@@ -436,6 +443,88 @@ export function PelanggaranDetailPage({ accessType, isBinaan = false }: { access
         loading={decideMutation.isPending}
         onConfirm={handleDecision}
       />
+
+      {tindakanPickerOpen ? (
+        <TindakanPickerOverlay
+          search={tindakanSearch}
+          loading={tindakanQuery.isLoading}
+          items={filteredTindakanOptions}
+          onSearchChange={setTindakanSearch}
+          onClose={() => setTindakanPickerOpen(false)}
+          onSelect={(item) => {
+            setTindakanId(item.id);
+            setTindakanPickerOpen(false);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function TindakanPickerOverlay({
+  search,
+  loading,
+  items,
+  onSearchChange,
+  onClose,
+  onSelect,
+}: {
+  search: string;
+  loading: boolean;
+  items: TindakanOption[];
+  onSearchChange: (value: string) => void;
+  onClose: () => void;
+  onSelect: (item: TindakanOption) => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[80] bg-[#F8F8FC]">
+      <div className="mx-auto flex h-svh w-full max-w-[430px] flex-col overflow-hidden bg-[#F8F8FC]">
+        <header className="z-10 flex shrink-0 items-center gap-4 bg-white px-5 py-5 shadow-sm">
+          <button type="button" onClick={onClose} className="flex size-10 items-center justify-center rounded-full text-slate-900">
+            <ChevronLeft className="size-6" />
+          </button>
+          <h2 className="text-xl font-semibold text-slate-950">Pilih Tindakan</h2>
+        </header>
+
+        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
+          <div className="mb-5 flex h-11 items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-4 shadow-sm">
+            <Search className="size-4 shrink-0 text-slate-400" />
+            <input
+              value={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Cari tindakan..."
+              className="h-full min-w-0 flex-1 bg-transparent text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400"
+              autoFocus
+            />
+          </div>
+
+          {loading ? (
+            <div className="rounded-[20px] bg-white p-5 text-center text-sm font-semibold text-slate-500 shadow-sm">Memuat tindakan...</div>
+          ) : items.length === 0 ? (
+            <div className="rounded-[20px] bg-white p-5 text-center text-sm font-semibold text-slate-500 shadow-sm">Tindakan tidak ditemukan.</div>
+          ) : (
+            <div className="space-y-3 pb-12">
+              {items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onSelect(item)}
+                  className="flex w-full items-center gap-4 rounded-[20px] bg-white p-4 text-left shadow-[0_3px_12px_rgba(15,23,42,0.08)] transition active:scale-[0.99]"
+                >
+                  <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                    <Gavel className="size-5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium leading-relaxed text-slate-900">{item.name}</span>
+                    <span className="mt-1 block text-xs font-medium text-slate-400">Tindakan hukuman</span>
+                  </span>
+                  <ChevronRight className="size-5 shrink-0 text-slate-300" />
+                </button>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

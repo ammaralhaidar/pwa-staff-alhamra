@@ -26,8 +26,8 @@ export function GuruQuranHomePage() {
   const sessionsQuery = useTahfidzHistorySessions(activeHalaqoh?.id);
 
   const sessions = useMemo(
-    () => mergeTahfidzSessions(sessionsQuery.data ?? []),
-    [sessionsQuery.data],
+    () => mergeTahfidzSessions(sessionsQuery.data ?? []).map((session) => enrichSessionWithHalaqoh(session, activeHalaqoh)),
+    [activeHalaqoh, sessionsQuery.data],
   );
 
   const filteredSessions = useMemo(() => {
@@ -107,6 +107,19 @@ export function GuruQuranHomePage() {
       </main>
     </div>
   );
+}
+
+function enrichSessionWithHalaqoh(
+  session: AttendanceSession,
+  halaqoh?: { id: number; name: string },
+): AttendanceSession {
+  if (!halaqoh) return session;
+
+  return {
+    ...session,
+    halaqohId: session.halaqohId || halaqoh.id,
+    halaqohName: session.halaqohName && session.halaqohName !== "-" ? session.halaqohName : halaqoh.name,
+  };
 }
 
 function CompletionAwareSessionCard({

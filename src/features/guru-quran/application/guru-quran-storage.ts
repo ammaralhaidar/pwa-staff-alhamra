@@ -24,7 +24,7 @@ export function addLocalTahfidzSession(value: Record<string, unknown>) {
 export function mergeTahfidzSessions(apiSessions: AttendanceSession[]) {
   const local = getLocalTahfidzSessions();
   const seen = new Set<number>();
-  return [...local, ...apiSessions]
+  return [...apiSessions, ...local]
     .filter((item) => {
       if (seen.has(item.id)) return false;
       seen.add(item.id);

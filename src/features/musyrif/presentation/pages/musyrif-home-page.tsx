@@ -25,8 +25,8 @@ export function MusyrifHomePage() {
         />
         <MusyrifMenuCard
           to="/musyrif/data"
-          title="Musyrif"
-          description="Data dan jadwal musyrif"
+          title="Musyrif/Tahfidz"
+          description="Input dan riwayat tahfidz musyrif"
           icon={<UsersRound className="size-7" />}
           iconBgClass="bg-purple-50"
           iconColorClass="text-purple-500"

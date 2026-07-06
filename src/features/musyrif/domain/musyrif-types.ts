@@ -202,11 +202,21 @@ export type Mutabaah = {
   name: string;
   santriId?: number;
   santriName: string;
+  kelas?: string;
   sesiName?: string;
   tanggal?: string;
   totalSkor: number;
   maxSkor: number;
   catatan?: string;
+};
+
+export type MutabaahListParams = {
+  siswa_id?: number;
+  sesi_id?: number;
+  tgl?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
 };
 
 export type CreateMutabaahPayload = {
@@ -235,9 +245,11 @@ export type TahfidzMusyrif = {
   sesiName?: string;
   ustadzName?: string;
   surahName?: string;
+  ayat?: string;
   ayatAwal?: string;
   ayatAkhir?: string;
   nilai?: string;
+  status?: string;
   keterangan?: string;
 };
 

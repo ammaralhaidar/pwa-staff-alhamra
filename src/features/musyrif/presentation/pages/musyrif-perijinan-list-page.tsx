@@ -28,7 +28,9 @@ export function MusyrifPerijinanListPage() {
     const keyword = search.toLowerCase();
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const hiddenFinalStatuses = new Set(["kembali", "selesai"]);
     return source.filter((item) => {
+      if (hiddenFinalStatuses.has(item.status)) return false;
       const matchesSearch = [item.name, item.santriName, item.nis].some((value) => value?.toLowerCase().includes(keyword));
       const matchesStatus = status === "all" || item.status === status;
       const itemDate = item.tanggalIzin ? new Date(item.tanggalIzin) : null;
@@ -69,7 +71,6 @@ export function MusyrifPerijinanListPage() {
               <SelectItem value="check">Check</SelectItem>
               <SelectItem value="approve">Approve</SelectItem>
               <SelectItem value="reject">Reject</SelectItem>
-              <SelectItem value="selesai">Selesai</SelectItem>
             </SelectContent>
           </Select>
 

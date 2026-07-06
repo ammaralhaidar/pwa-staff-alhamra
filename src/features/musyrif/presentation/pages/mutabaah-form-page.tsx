@@ -3,21 +3,30 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isDemoFallbackEnabled } from "@/lib/helpers";
 import { fallbackMusyrifStudents, fallbackMutabaahActivities, fallbackMutabaahSesi } from "../../application/musyrif-fallback-data";
 import { useCreateMutabaah, useMusyrifStudents, useMutabaahActivities, useMutabaahSesi } from "../../application/musyrif-queries";
 import type { MutabaahItem } from "../../domain/musyrif-types";
 import { ActivityCheckItem } from "../components/activity-check-item";
+import { MusyrifDatePicker } from "../components/musyrif-date-picker";
 import { MusyrifHeader } from "../components/musyrif-header";
+import { SearchableOptionPicker } from "../components/searchable-option-picker";
+
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 export function MutabaahFormPage() {
   const navigate = useNavigate();
+  const today = useMemo(() => formatDateInput(new Date()), []);
   const [siswaId, setSiswaId] = useState("");
   const [sesiId, setSesiId] = useState("");
-  const [tanggal, setTanggal] = useState("");
+  const [tanggal, setTanggal] = useState(today);
   const [uncheckedIds, setUncheckedIds] = useState<number[]>([]);
+  const [activityNotes, setActivityNotes] = useState<Record<number, string>>({});
   const studentsQuery = useMusyrifStudents();
   const sesiQuery = useMutabaahSesi();
   const activitiesQuery = useMutabaahActivities(Number(sesiId));
@@ -41,8 +50,25 @@ export function MutabaahFormPage() {
   const isUsingFallback = isStudentFallbackMode || isSesiFallbackMode || isActivitiesFallbackMode;
 
   const items: MutabaahItem[] = useMemo(
-    () => activities.map((activity) => ({ ...activity, dilaksanakan: !uncheckedIds.includes(activity.id) })),
-    [activities, uncheckedIds],
+    () => activities.map((activity) => ({ ...activity, dilaksanakan: !uncheckedIds.includes(activity.id), keterangan: activityNotes[activity.id] })),
+    [activities, activityNotes, uncheckedIds],
+  );
+  const studentOptions = useMemo(
+    () => students.map((student) => ({
+      value: String(student.id),
+      label: student.name,
+      subtitle: student.nis ? `NIS: ${student.nis}` : undefined,
+      badge: student.kelas,
+    })),
+    [students],
+  );
+  const sesiOptions = useMemo(
+    () => sesiList.map((sesi) => ({
+      value: String(sesi.id),
+      label: sesi.name,
+      subtitle: [sesi.jamMulai, sesi.jamSelesai].filter(Boolean).join(" - ") || undefined,
+    })),
+    [sesiList],
   );
 
   const score = useMemo(() => {
@@ -66,7 +92,7 @@ export function MutabaahFormPage() {
       tgl: tanggal,
       mutabaah_lines: items
         .filter((item) => !item.dilaksanakan)
-        .map((item) => ({ mutabaah_id: item.id, is_sudah: false, keterangan: item.keterangan || "-" })),
+        .map((item) => ({ mutabaah_id: item.id, is_sudah: false, keterangan: item.keterangan?.trim() || "-" })),
     }, {
       onSuccess: () => {
         toast.success("Mutabaah berhasil disimpan.");
@@ -92,44 +118,31 @@ export function MutabaahFormPage() {
           <Card className="space-y-4 rounded-[24px] border-0 bg-white p-5 shadow-sm">
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 block">Tanggal</label>
-              <Input 
-                type="date" 
-                value={tanggal} 
-                onChange={(event) => setTanggal(event.target.value)} 
-                className="h-11 rounded-xl border-slate-200 focus-visible:ring-blue-500"
-              />
+              <MusyrifDatePicker value={tanggal} min={today} onChange={setTanggal} />
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 block">Sesi</label>
-              <Select value={sesiId} onValueChange={setSesiId}>
-                <SelectTrigger className="h-11 rounded-xl border-slate-200">
-                  <SelectValue placeholder="Pilih Sesi" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sesiList.map((sesi) => (
-                    <SelectItem key={sesi.id} value={String(sesi.id)}>
-                      {sesi.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableOptionPicker
+                value={sesiId}
+                onChange={setSesiId}
+                title="Pilih Sesi"
+                placeholder="Pilih Sesi"
+                searchPlaceholder="Cari sesi..."
+                options={sesiOptions}
+              />
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 block">Siswa</label>
-              <Select value={siswaId} onValueChange={setSiswaId}>
-                <SelectTrigger className="h-11 rounded-xl border-slate-200">
-                  <SelectValue placeholder="Pilih Siswa" />
-                </SelectTrigger>
-                <SelectContent>
-                  {students.map((student) => (
-                    <SelectItem key={student.id} value={String(student.id)}>
-                      {student.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableOptionPicker
+                value={siswaId}
+                onChange={setSiswaId}
+                title="Pilih Siswa"
+                placeholder="Pilih Siswa"
+                searchPlaceholder="Cari nama, NIS, atau kelas..."
+                options={studentOptions}
+              />
             </div>
           </Card>
 
@@ -174,10 +187,12 @@ export function MutabaahFormPage() {
                 <ActivityCheckItem
                   key={item.id}
                   item={item}
-                  onChange={(checked) => 
-                    setUncheckedIds((current) => 
-                      checked 
-                        ? current.filter((id) => id !== item.id) 
+                  note={activityNotes[item.id] ?? ""}
+                  onNoteChange={(value) => setActivityNotes((current) => ({ ...current, [item.id]: value }))}
+                  onChange={(checked) =>
+                    setUncheckedIds((current) =>
+                      checked
+                        ? current.filter((id) => id !== item.id)
                         : [...new Set([...current, item.id])]
                     )
                   }

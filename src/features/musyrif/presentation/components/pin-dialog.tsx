@@ -29,14 +29,14 @@ export function PinDialog({ open, onOpenChange, isLoading, onSubmit }: PinDialog
         </DialogHeader>
         <div className="grid gap-3 mt-2">
           <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">PIN Baru</label>
+            <label className="text-[18px] font-bold text-slate-400 uppercase tracking-wider">PIN Baru</label>
             <Input 
               type="password" 
               placeholder="Masukkan 4-6 digit angka PIN baru" 
               maxLength={6}
               value={pin} 
               onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))} 
-              className="h-11 rounded-xl border-slate-200 focus-visible:ring-blue-500 text-center tracking-widest font-black text-lg"
+              className="h-11 rounded-xl border-slate-200 focus-visible:ring-blue-500 text-center tracking-widest font-black text-sm"
             />
           </div>
         </div>

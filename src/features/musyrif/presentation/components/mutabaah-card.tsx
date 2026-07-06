@@ -25,7 +25,7 @@ export function MutabaahCard({ item }: { item: Mutabaah }) {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-slate-400">Kelas:</span>
-          <span className="font-bold text-slate-700">Kelas VIII A</span>
+          <span className="font-bold text-slate-700">{item.kelas || "-"}</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-slate-400">Sesi:</span>
