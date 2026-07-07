@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getPerijinanId } from "../../application/keamanan-mappers";
+import { getKeamananErrorMessage, getKeamananSuccessMessage, getPerijinanId } from "../../application/keamanan-mappers";
 import { useCheckinSecurity, useCheckoutSecurity, useKeamananDetail } from "../../application/keamanan-queries";
 import type { KeamananActionType, KeamananPermission } from "../../domain/keamanan-types";
 import { InfoCard, InfoRow } from "../components/info-card";
@@ -28,7 +28,7 @@ function nowTime() {
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Data perizinan tidak bisa dimuat.";
+  return getKeamananErrorMessage(error, "Data perizinan tidak bisa dimuat.");
 }
 
 function StateMessage({
@@ -108,20 +108,21 @@ export function KeamananActionPage({ actionType }: { actionType: KeamananActionT
     }
     if (isCheckout) {
       checkoutMutation.mutate({ permissionId: permission.permissionId, perijinanId: targetId, permission }, {
-        onSuccess: () => {
-          toast.success("Checkout berhasil.");
-          navigate("/keamanan");
+        onSuccess: (response) => {
+          toast.success(getKeamananSuccessMessage(response, "Checkout berhasil."));
+          navigate("/keamanan", { state: { tab: "outside" } });
         },
-        onError: () => toast.error("Gagal checkout."),
+        onError: (error) => toast.error(getKeamananErrorMessage(error, "Gagal checkout.")),
       });
       return;
     }
     checkinMutation.mutate({ permissionId: permission.permissionId, perijinanId: targetId, permission }, {
-      onSuccess: () => {
-        toast.success(late.late ? `Checkin berhasil, terlambat ${late.days} hari.` : "Checkin berhasil.");
+      onSuccess: (response) => {
+        const fallback = late.late ? `Checkin berhasil, terlambat ${late.days} hari.` : "Checkin berhasil.";
+        toast.success(getKeamananSuccessMessage(response, fallback));
         navigate("/keamanan");
       },
-      onError: () => toast.error("Gagal checkin."),
+      onError: (error) => toast.error(getKeamananErrorMessage(error, "Gagal checkin.")),
     });
   };
 

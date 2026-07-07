@@ -2,6 +2,20 @@ import type { KeamananPermission } from "../domain/keamanan-types";
 
 const STORAGE_KEY = "alhamra:keamanan-permission-state";
 
+function getIds(permission: KeamananPermission) {
+  return [permission.permissionId, permission.perijinanId, permission.id].filter(Boolean).map(Number);
+}
+
+function hasMatchingId(first: KeamananPermission, second: KeamananPermission) {
+  const firstIds = new Set(getIds(first));
+  return getIds(second).some((id) => firstIds.has(id));
+}
+
+function isLocalOutside(permission: KeamananPermission) {
+  const marker = `${permission.status ?? ""} ${permission.state} ${permission.stateLabel} ${permission.statusLabel ?? ""}`.toLowerCase();
+  return marker.includes("outside") || marker.includes("permission") || marker.includes("keluar");
+}
+
 export function loadLocalPermissionState(): KeamananPermission[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -27,8 +41,8 @@ export function addLocalPermissionState(permission: KeamananPermission) {
     statusLabel: "Sedang Keluar",
     waktuKeluar: permission.waktuKeluar || new Date().toISOString(),
   };
-  const ids = new Set([updated.permissionId, updated.perijinanId, updated.id].filter(Boolean));
-  const items = loadLocalPermissionState().filter((item) => !ids.has(item.permissionId) && !ids.has(item.perijinanId) && !ids.has(item.id));
+  const ids = new Set(getIds(updated));
+  const items = loadLocalPermissionState().filter((item) => !getIds(item).some((id) => ids.has(id)));
   items.push(updated);
   saveLocalPermissionState(items);
   return items;
@@ -42,8 +56,13 @@ export function removeLocalPermissionState(permissionId: number) {
 
 export function mergeLocalPermissionState(apiItems: KeamananPermission[]) {
   const local = loadLocalPermissionState();
-  const apiIds = new Set(apiItems.flatMap((item) => [item.permissionId, item.perijinanId, item.id]).filter(Boolean));
-  const reconciledLocal = local.filter((item) => !apiIds.has(item.permissionId) && !apiIds.has(item.perijinanId) && !apiIds.has(item.id));
-  if (reconciledLocal.length !== local.length) saveLocalPermissionState(reconciledLocal);
-  return [...apiItems, ...reconciledLocal];
+  const activeLocal = local.filter(isLocalOutside);
+  const mergedApi = apiItems.map((apiItem) => {
+    const localMatch = activeLocal.find((localItem) => hasMatchingId(localItem, apiItem));
+    return localMatch ?? apiItem;
+  });
+  const extraLocal = activeLocal.filter((localItem) => !apiItems.some((apiItem) => hasMatchingId(localItem, apiItem)));
+  const merged = [...mergedApi, ...extraLocal];
+  if (activeLocal.length !== local.length) saveLocalPermissionState(activeLocal);
+  return merged;
 }

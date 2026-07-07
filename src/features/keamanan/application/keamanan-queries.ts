@@ -55,9 +55,10 @@ export function useCheckoutSecurity() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: KeamananActionPayload) => {
-      await checkoutSecurity(payload);
+      const response = await checkoutSecurity(payload);
       const { permission } = payload;
       if (permission) addLocalPermissionState(permission);
+      return response;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: keamananKeys.all });
@@ -70,11 +71,11 @@ export function useCheckinSecurity() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: KeamananActionPayload) => {
-      await checkinSecurity(payload);
+      const response = await checkinSecurity(payload);
       const ids = [payload.permissionId, payload.perijinanId, payload.permission?.permissionId, payload.permission?.perijinanId].filter(Boolean);
       ids.forEach((id) => removeLocalPermissionState(Number(id)));
-      // Keep legacy payload type close by because update_status still exists as backend fallback.
       void ({ permissionId: payload.permissionId, actionType: "checkin" } satisfies KeamananUpdatePayload);
+      return response;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: keamananKeys.all });

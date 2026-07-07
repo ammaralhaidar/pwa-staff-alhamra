@@ -65,21 +65,77 @@ export function unwrapOdooData(value: unknown): unknown {
   return current;
 }
 
+function unwrapOdooOperation(value: unknown): unknown {
+  let current = value;
+  for (let index = 0; index < 5; index += 1) {
+    if (!isRecord(current)) return current;
+    if (
+      current.action_type !== undefined ||
+      current.button_label !== undefined ||
+      current.status !== undefined ||
+      current.message !== undefined
+    ) {
+      return current;
+    }
+    if (current.result !== undefined) {
+      current = current.result;
+      continue;
+    }
+    return current;
+  }
+  return current;
+}
+
 export function extractOdooMessage(value: unknown): string {
   const root = record(value);
   const result = record(root.result);
-  const data = record(result.data ?? root.data);
-  return text(root.message, result.message, data.message, root.error, result.error, data.error);
+  const nestedResult = record(result.result);
+  const data = record(nestedResult.data ?? result.data ?? root.data);
+  const rootError = record(root.error);
+  const resultError = record(result.error);
+  const nestedError = record(nestedResult.error);
+  const dataError = record(data.error);
+  return text(
+    root.message,
+    result.message,
+    nestedResult.message,
+    data.message,
+    rootError.message,
+    rootError.data,
+    resultError.message,
+    resultError.data,
+    nestedError.message,
+    nestedError.data,
+    dataError.message,
+    dataError.data,
+    root.error,
+    result.error,
+    nestedResult.error,
+    data.error,
+  );
 }
 
 export function assertOdooSuccess(value: unknown) {
   const root = record(value);
   const result = record(root.result);
-  const status = text(root.status, result.status).toLowerCase();
-  const hasError = Boolean(root.error || result.error || status === "error" || status === "failed" || status === "fail");
+  const nestedResult = record(result.result);
+  const status = text(root.status, result.status, nestedResult.status).toLowerCase();
+  const successLike = status === "success" || status === "ok" || status === "200";
+  const failLike = status === "error" || status === "failed" || status === "fail";
+  const hasError = Boolean(root.error || result.error || nestedResult.error || (!successLike && failLike));
   if (hasError) {
     throw new Error(extractOdooMessage(value) || "Request Keamanan gagal diproses.");
   }
+}
+
+export function getKeamananErrorMessage(error: unknown, fallback = "Request Keamanan gagal diproses.") {
+  if (error instanceof Error && error.message.trim()) return error.message.trim();
+  const message = extractOdooMessage(error);
+  return message || fallback;
+}
+
+export function getKeamananSuccessMessage(response: unknown, fallback: string) {
+  return extractOdooMessage(response) || fallback;
 }
 
 function normalizeAction(value: unknown, permission: KeamananPermission): KeamananActionType {
@@ -176,14 +232,20 @@ export function mapDashboard(value: unknown): KeamananDashboard {
 }
 
 export function mapScanResult(value: unknown): KeamananScanResult {
-  const data = record(unwrapOdooData(value));
+  const data = record(unwrapOdooOperation(value));
   const nested = record(data.result ?? data.data);
   const source = Object.keys(nested).length ? nested : data;
-  const permission = mapPermission(source.permission ?? source.perijinan ?? source.data ?? source.detail ?? source);
+  const scanData = record(source.data);
+  const rawAction = text(source.action_type, data.action_type);
+  const permissionSource = Object.keys(scanData).length
+    ? { ...scanData, action_type: rawAction, state: scanData.state ?? rawAction, state_label: scanData.state_label ?? source.button_label }
+    : source.permission ?? source.perijinan ?? source.detail ?? source;
+  const permission = mapPermission(permissionSource);
+  const actionType = normalizeAction(rawAction, permission);
   return {
-    actionType: normalizeAction(source.action_type, permission),
+    actionType,
     permission,
-    message: text(source.message),
+    message: text(source.message, source.button_label),
   };
 }
 
