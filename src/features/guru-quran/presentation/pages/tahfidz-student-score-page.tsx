@@ -12,6 +12,7 @@ import {
   User,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { GuruQuranHeader } from "../components/guru-quran-header";
 import {
   useAyatList,
@@ -252,6 +253,9 @@ export function TahfidzStudentScorePage() {
   const lastTahfidzDisplay = readonly
     ? formatHistoryTahfidz(historyDetail) || parseLastTahfidz(draftDetail?.lastTahfidz)
     : parseLastTahfidz(draftDetail?.lastTahfidz);
+  const totalHafalanDisplay = readonly
+    ? historyDetail?.totalHafalanSiswa || draftDetail?.totalHafalanSiswa
+    : draftDetail?.totalHafalanSiswa;
 
   const statusMessage = useMemo(() => {
     if (!hasDraftContext) return `Data sesi belum lengkap (${missingDraftFields.join(", ")}). Surah dan ayat awal belum bisa diprefill.`;
@@ -321,8 +325,11 @@ export function TahfidzStudentScorePage() {
           </div>
         </div>
 
-        {lastTahfidzDisplay ? (
-          <TahfidzTerakhirCard value={lastTahfidzDisplay} />
+        {lastTahfidzDisplay || totalHafalanDisplay ? (
+          <TahfidzTerakhirCard
+            tahfidzTerakhir={lastTahfidzDisplay}
+            totalHafalan={totalHafalanDisplay}
+          />
         ) : (
           <div className="mt-4 rounded-2xl border border-[#B3E0FF] bg-[#F0F9FF] p-4">
             <p className="text-sm font-semibold text-[#344054]">{statusMessage}</p>
@@ -330,9 +337,14 @@ export function TahfidzStudentScorePage() {
         )}
 
         {isMasterLoading ? (
-          <div className="mt-5 flex items-center justify-center rounded-2xl border border-[#EAECF0] bg-white py-10 text-sm font-semibold text-[#667085]">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Memuat master penilaian...
+          <div className="mt-5 space-y-4 rounded-2xl border border-[#EAECF0] bg-white p-5">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-12 rounded-xl" />
+              <Skeleton className="h-12 rounded-xl" />
+            </div>
+            <Skeleton className="h-12 w-full rounded-xl" />
           </div>
         ) : (
           <>
@@ -546,14 +558,34 @@ function FormLabel({ children }: { children: ReactNode }) {
   return <p className="mb-2 text-sm font-medium text-[#344054]">{children}</p>;
 }
 
-function TahfidzTerakhirCard({ value }: { value: string }) {
+function TahfidzTerakhirCard({
+  tahfidzTerakhir,
+  totalHafalan,
+}: {
+  tahfidzTerakhir?: string;
+  totalHafalan?: string;
+}) {
   return (
     <div className="mt-4 rounded-2xl border border-[#B3E0FF] bg-[#F0F9FF] p-4 shadow-[0_2px_8px_rgba(40,141,229,0.08)]">
-      <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[#288DE5]">
-        <BookOpen className="h-4 w-4" />
-        <span>Tahfidz Terakhir</span>
-      </div>
-      <p className="text-base font-semibold leading-relaxed text-[#101828]">{value}</p>
+      {totalHafalan && (
+        <div>
+          <div className="mb-1 flex items-center gap-2 text-sm font-bold text-[#288DE5]">
+            <BookOpen className="h-4 w-4" />
+            <span>Total Hafalan</span>
+          </div>
+          <p className="text-base font-semibold leading-relaxed text-[#101828]">{totalHafalan}</p>
+        </div>
+      )}
+
+      {tahfidzTerakhir && (
+        <div className={totalHafalan ? "mt-4" : ""}>
+          <div className="mb-1 flex items-center gap-2 text-sm font-bold text-[#288DE5]">
+            <BookOpen className="h-4 w-4" />
+            <span>Tahfidz Terakhir</span>
+          </div>
+          <p className="text-base font-semibold leading-relaxed text-[#101828]">{tahfidzTerakhir}</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DetailPageSkeleton } from "@/components/feedback/page-skeletons";
 import { getKeamananErrorMessage, getKeamananSuccessMessage, getPerijinanId } from "../../application/keamanan-mappers";
 import { useCheckinSecurity, useCheckoutSecurity, useKeamananDetail } from "../../application/keamanan-queries";
 import type { KeamananActionType, KeamananPermission } from "../../domain/keamanan-types";
@@ -138,11 +139,12 @@ export function KeamananActionPage({ actionType }: { actionType: KeamananActionT
 
   if (!permission && detailQuery.isLoading) {
     return (
-      <StateMessage
-        actionType={actionType}
-        title="Memuat data perizinan"
-        description="Sebentar, data santri sedang diambil dari API Keamanan."
-      />
+      <div className="relative mx-auto flex h-svh w-screen max-w-[430px] flex-col bg-[#F8FAFC]">
+        <div className={`${isCheckout ? "bg-orange-500" : "bg-emerald-500"} h-[92px] shrink-0 rounded-b-[24px]`} />
+        <section className="flex-1 overflow-y-auto px-4 py-6">
+          <DetailPageSkeleton />
+        </section>
+      </div>
     );
   }
 

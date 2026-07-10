@@ -3,7 +3,8 @@ import { authApi } from "@/features/auth/infrastructure/auth-api";
 import { persistAuthSession } from "@/lib/storage";
 
 export async function loginUseCase(input: LoginCredentials) {
-  const isBypassEnabled = import.meta.env.VITE_AUTH_BYPASS === "true";
+  // A production bundle must never accept the development identity shortcut.
+  const isBypassEnabled = import.meta.env.DEV && import.meta.env.VITE_AUTH_BYPASS === "true";
 
   if (!isBypassEnabled) {
     const result = await authApi.login(input);
@@ -19,6 +20,7 @@ export async function loginUseCase(input: LoginCredentials) {
       login: "dev",
       roleFlags: {
         is_guru_quran: true,
+        is_academic_teacher: true,
         is_musyrif: true,
         is_petugas_keamanan: true,
         is_petugas_pelanggaran: true,
@@ -27,6 +29,7 @@ export async function loginUseCase(input: LoginCredentials) {
       },
       roles: [
         "is_guru_quran",
+        "is_academic_teacher",
         "is_musyrif",
         "is_petugas_keamanan",
         "is_petugas_pelanggaran",

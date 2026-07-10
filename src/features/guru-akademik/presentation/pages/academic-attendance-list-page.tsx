@@ -1,0 +1,18 @@
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Plus, Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { academicClasses, academicSubjects } from "../../application/guru-akademik-fallback-data";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { PageLoadingState } from "@/components/feedback/page-loading-state";
+import { GuruAkademikHeader } from "../components/guru-akademik-header";
+import { AcademicAttendanceCard } from "../components/academic-attendance-card";
+import { useAcademicAttendance } from "../../application/guru-akademik-queries";
+
+export function AcademicAttendanceListPage() {
+  const navigate = useNavigate(); const [search, setSearch] = useState(""); const [state, setState] = useState("semua"); const [classId, setClassId] = useState("semua"); const [subjectId, setSubjectId] = useState("semua"); const query = useAcademicAttendance();
+  const items = useMemo(() => (query.data ?? []).filter((item) => `${item.subjectName} ${item.className} ${item.teacherName}`.toLowerCase().includes(search.toLowerCase()) && (state === "semua" || item.state === state) && (classId === "semua" || String(item.classId) === classId) && (subjectId === "semua" || String(item.subjectId) === subjectId)), [classId, query.data, search, state, subjectId]);
+  return <main className="mx-auto min-h-svh max-w-[430px]"><GuruAkademikHeader title="Absensi Siswa" subtitle="Kelola kehadiran siswa" onBack={() => navigate("/guru-akademik")} /><section className="space-y-4 px-4 py-5 pb-24"><div className="flex h-12 items-center gap-2 rounded-2xl bg-white px-4 shadow-sm"><Search className="size-4 text-slate-400" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari mapel, kelas, atau guru..." className="h-auto border-0 p-0 shadow-none focus-visible:ring-0" /></div><div className="grid grid-cols-3 gap-2"><Filter value={state} onChange={setState} placeholder="Status" options={[["semua", "Semua"], ["draft", "Draft"], ["done", "Selesai"]]} /><Filter value={classId} onChange={setClassId} placeholder="Kelas" options={[["semua", "Kelas"], ...academicClasses.map((item) => [String(item.id), item.name])]} /><Filter value={subjectId} onChange={setSubjectId} placeholder="Mapel" options={[["semua", "Mapel"], ...academicSubjects.map((item) => [String(item.id), item.name])]} /></div>{query.isLoading ? <PageLoadingState /> : items.length ? <div className="space-y-3">{items.map((item) => <AcademicAttendanceCard key={item.id} item={item} />)}</div> : <div className="rounded-2xl bg-white p-8 text-center text-sm font-medium text-slate-500">Belum ada data absensi yang sesuai.</div>}</section><div className="fixed bottom-6 left-0 right-0 z-30 pointer-events-none"><div className="mx-auto flex max-w-[430px] justify-end px-4"><Button asChild className="pointer-events-auto size-14 rounded-full bg-[#288DE5] shadow-lg"><Link to="/guru-akademik/absensi/tambah"><Plus className="size-6" /></Link></Button></div></div></main>;
+}
+function Filter({ value, onChange, placeholder, options }: { value: string; onChange: (value: string) => void; placeholder: string; options: string[][] }) { return <Select value={value} onValueChange={onChange}><SelectTrigger className="h-9 w-full bg-white text-xs"><SelectValue placeholder={placeholder} /></SelectTrigger><SelectContent>{options.map(([id, label]) => <SelectItem key={id} value={id}>{label}</SelectItem>)}</SelectContent></Select>; }

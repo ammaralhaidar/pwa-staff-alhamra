@@ -227,6 +227,7 @@ export function mapTahfidzDraftDetail(rawValue: unknown, tahfidzId: number): Tah
   return {
     tahfidzId,
     lastTahfidz: text(source.last_tahfidz) || undefined,
+    totalHafalanSiswa: text(source.total_hafalan_siswa) || undefined,
     currentSurah: currentSurah.id || currentSurah.name ? {
       id: numberValue(currentSurah.id),
       name: text(currentSurah.name, "-"),
@@ -247,6 +248,7 @@ export function mapTahfidzHistoryDetail(rawValue: unknown, tahfidzId: number): T
 
   return {
     tahfidzId,
+    totalHafalanSiswa: text(source.total_hafalan_siswa) || undefined,
     surah: text(source.surah) || undefined,
     surah2: text(source.surah2, source.surah_2) || undefined,
     ayatAwal: numberValue(source.ayat_awal) || undefined,

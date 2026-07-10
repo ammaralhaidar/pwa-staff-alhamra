@@ -93,6 +93,7 @@ export type TahfidzStudent = {
 export type TahfidzDraftDetail = {
   tahfidzId: number;
   lastTahfidz?: string;
+  totalHafalanSiswa?: string;
   currentSurah?: {
     id: number;
     name: string;
@@ -108,6 +109,7 @@ export type TahfidzDraftDetail = {
 
 export type TahfidzHistoryDetail = {
   tahfidzId: number;
+  totalHafalanSiswa?: string;
   surah?: string;
   surah2?: string;
   ayatAwal?: number;

@@ -1,5 +1,6 @@
 export type RoleKey =
   | "is_guru_quran"
+  | "is_academic_teacher"
   | "is_musyrif"
   | "is_petugas_keamanan"
   | "is_petugas_pelanggaran"

@@ -17,7 +17,7 @@ export function KeamananBottomNav() {
         <button
           type="button"
           onClick={() => navigate("/keamanan/scan")}
-          className="absolute left-1/2 top-0 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-blue-600 text-white shadow-lg"
+          className="absolute left-1/2 top-0 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-[#288DE5] text-white shadow-[0_4px_14px_rgba(40,141,229,0.45)] transition active:scale-95"
           aria-label="Scan QR"
         >
           <QrCode className="size-7" />

@@ -8,6 +8,7 @@ import { appRoles } from "@/features/roles/infrastructure/role-data";
 import { RoleCard } from "@/features/roles/presentation/components/role-card";
 import { clearAuthSession, hasStoredAuthSession, resolveStoredRoleFlags } from "@/lib/storage";
 import { appAssets } from "@/shared/assets/app-assets";
+import { appQueryClient } from "@/app/providers/app-providers";
 
 export function RoleSelectionPage() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export function RoleSelectionPage() {
 
   async function handleLogout() {
     await authApi.logout().catch(() => undefined);
+    appQueryClient.clear();
     clearAuthSession();
     navigate("/login", { replace: true });
   }

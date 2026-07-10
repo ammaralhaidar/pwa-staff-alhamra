@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Briefcase, ChevronRight, HelpCircle, Key, LogOut, Mail, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { appQueryClient } from "@/app/providers/app-providers";
 
 import { InfoRow } from "@/components/data-display/info-row";
 import { clearAuthSession, initialsFromName, resolveStoredProfile } from "@/lib/storage";
@@ -32,6 +33,7 @@ export function RoleProfilePage({
   const initials = initialsFromName(name, fallbackInitial);
 
   const handleLogout = () => {
+    appQueryClient.clear();
     clearAuthSession();
     navigate("/login");
   };

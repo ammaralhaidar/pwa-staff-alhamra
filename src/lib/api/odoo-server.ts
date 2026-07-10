@@ -1,5 +1,7 @@
 const SESSION_STORAGE_KEY = "alhamra:odoo-session";
 
+const SENSITIVE_DEBUG_KEYS = new Set(["password", "new_password", "old_password", "pin", "new_pin", "session_id", "token", "authorization"]);
+
 function isApiDebugEnabled() {
   return import.meta.env.VITE_API_DEBUG === "true";
 }
@@ -24,15 +26,28 @@ export function getOdooConfig() {
 }
 
 export function getSessionId() {
-  return localStorage.getItem(SESSION_STORAGE_KEY);
+  // Session storage reduces exposure duration compared with localStorage. The
+  // localStorage fallback only supports users with a session from an older build.
+  return sessionStorage.getItem(SESSION_STORAGE_KEY) ?? localStorage.getItem(SESSION_STORAGE_KEY);
 }
 
 export function setSessionId(sessionId: string) {
-  localStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+  sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+  localStorage.removeItem(SESSION_STORAGE_KEY);
 }
 
 export function clearSessionId() {
+  sessionStorage.removeItem(SESSION_STORAGE_KEY);
   localStorage.removeItem(SESSION_STORAGE_KEY);
+}
+
+function redactDebugValue(value: unknown, key = ""): unknown {
+  if (SENSITIVE_DEBUG_KEYS.has(key.toLowerCase())) return "[REDACTED]";
+  if (Array.isArray(value)) return value.map((item) => redactDebugValue(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([entryKey, entryValue]) => [entryKey, redactDebugValue(entryValue, entryKey)]));
+  }
+  return value;
 }
 
 export async function postOdoo<T>(
@@ -48,7 +63,7 @@ export async function postOdoo<T>(
     console.groupCollapsed(`[odoo-api] POST ${requestUrl}`);
     console.log("baseUrl:", baseUrl || "(relative)");
     console.log("path:", path);
-    console.log("params:", params);
+    console.log("params:", redactDebugValue(params));
     console.log("hasSessionId:", Boolean(sessionId));
   }
 
@@ -81,12 +96,19 @@ export async function postOdoo<T>(
   if (debugEnabled) {
     console.log("status:", response.status);
     console.log("ok:", response.ok);
-    console.log("response body:", body);
+    console.log("response body:", redactDebugValue(body));
     console.groupEnd();
   }
 
   if (isLikelyUnproxiedLocalApi404(response, requestUrl)) {
     throw new Error("Proxy Vite belum aktif. Restart dev server dari folder alhamraPwa, lalu coba login lagi.");
+  }
+
+  if (response.status === 401) {
+    clearSessionId();
+    localStorage.removeItem("alhamra:auth-session");
+    localStorage.removeItem("alhamra:user");
+    localStorage.removeItem("alhamra:login-result");
   }
 
   if (!response.ok || body.error) {

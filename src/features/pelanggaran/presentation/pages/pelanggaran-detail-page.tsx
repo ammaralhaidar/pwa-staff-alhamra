@@ -263,53 +263,53 @@ export function PelanggaranDetailPage({ accessType, isBinaan = false }: { access
           </Card>
 
           {/* Card: Data Santri */}
-          <Card className="rounded-[20px] border-0 bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)] space-y-4">
-            <h3 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">Data Santri</h3>
-            <div className="space-y-4">
+          <Card className="space-y-3 rounded-[20px] border-0 bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
+            <h3 className="border-b border-slate-100 pb-2 text-base font-bold text-slate-800">Data Santri</h3>
+            <div className="space-y-3">
               <div>
                 <p className="text-xs font-semibold text-slate-400">Tanggal Pelanggaran</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-800">{safeText(data.tgl || data.tanggal)}</p>
+                <p className="mt-1 text-sm font-bold text-slate-800">{safeText(data.tgl || data.tanggal)}</p>
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-400">Siswa</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-800">{safeText(data.namaSantri)}</p>
+                <p className="mt-1 text-sm font-bold text-slate-800">{safeText(data.namaSantri)}</p>
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-400">Kelas</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-800">{safeText(data.kelasSantri)}</p>
+                <p className="mt-1 text-sm font-bold text-slate-800">{safeText(data.kelasSantri)}</p>
               </div>
             </div>
           </Card>
 
           {/* Card: Data Pelanggaran */}
-          <Card className="rounded-[20px] border-0 bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)] space-y-4">
-            <h3 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">Data Pelanggaran</h3>
-            <div className="space-y-4">
+          <Card className="space-y-3 rounded-[20px] border-0 bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
+            <h3 className="border-b border-slate-100 pb-2 text-base font-bold text-slate-800">Data Pelanggaran</h3>
+            <div className="space-y-3">
               <div>
                 <p className="text-xs font-semibold text-slate-400">Nama Pelanggaran</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-800">{safeText(data.namaPelanggaran)}</p>
+                <p className="mt-1 text-sm font-bold text-slate-800">{safeText(data.namaPelanggaran)}</p>
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-400">Kategori</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-800">{safeText(data.kategori)}</p>
+                <p className="mt-1 text-sm font-bold text-slate-800">{safeText(data.kategori)}</p>
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-400">Poin</p>
-                <p className="mt-1.5 text-sm font-bold text-red-600">{safeText(data.poin, "0")}</p>
+                <p className="mt-1 text-sm font-bold text-red-600">{safeText(data.poin, "0")}</p>
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-400">Deskripsi Pelanggaran</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-800">{safeText(data.catatan || data.deskripsi)}</p>
+                <p className="mt-1 text-sm font-bold text-slate-800">{safeText(data.catatan || data.deskripsi)}</p>
               </div>
             </div>
           </Card>
 
           {/* Card: Tindakan / Hukuman */}
-          <Card className="rounded-[20px] border-0 bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)] space-y-4">
-            <h3 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">Tindakan / Hukuman</h3>
+          <Card className="space-y-3 rounded-[20px] border-0 bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
+            <h3 className="border-b border-slate-100 pb-2 text-base font-bold text-slate-800">Tindakan / Hukuman</h3>
             
             {canProcess ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {tindakanQuery.isError ? <p className="text-xs font-semibold text-amber-600">{isTindakanFallbackMode ? "Gagal memuat master tindakan dari API. Data contoh ditampilkan." : "Gagal memuat master tindakan dari API."}</p> : null}
                 {!tindakanQuery.isError && tindakanQuery.isLoading ? <p className="text-xs font-semibold text-slate-400">Memuat master tindakan...</p> : null}
                 {!tindakanQuery.isError && !tindakanQuery.isLoading && tindakanOptions.length === 0 ? <p className="text-xs font-semibold text-slate-400">Belum ada master tindakan tersedia.</p> : null}
@@ -361,9 +361,9 @@ export function PelanggaranDetailPage({ accessType, isBinaan = false }: { access
 
           {/* Card: Mengetahui / Disetujui */}
           {(data.status === "validasi" || data.status === "selesai") && (
-            <Card className="rounded-[20px] border-0 bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)] space-y-4">
-              <h3 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">Mengetahui / Disetujui</h3>
-              <div className="space-y-4">
+            <Card className="space-y-3 rounded-[20px] border-0 bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
+              <h3 className="border-b border-slate-100 pb-2 text-base font-bold text-slate-800">Mengetahui / Disetujui</h3>
+              <div className="space-y-3">
                 <div>
                   <p className="text-xs font-semibold text-slate-400">Disetujui Oleh</p>
                   <p className="mt-1.5 text-sm font-bold text-slate-800">{safeText(data.keputusan?.userDisetujui)}</p>

@@ -153,7 +153,7 @@ export function PelanggaranDetailPage() {
                 ]}
               />
 
-              <section className="space-y-4 rounded-3xl bg-white p-4 shadow-sm">
+              <section className="space-y-3 rounded-3xl bg-white p-4 shadow-sm">
                 <h3 className="font-semibold text-slate-900">Tindakan / Hukuman</h3>
                 {canEditTindakan ? (
                   <>
@@ -178,7 +178,7 @@ export function PelanggaranDetailPage() {
                     />
                   </>
                 ) : (
-                  <div className="space-y-4 border-t border-slate-100 pt-4">
+                  <div className="space-y-3 border-t border-slate-100 pt-3">
                     <ReadOnlyField label="Tindakan" value={detail.infoTindakan?.tindakanNama || detail.tindakan} />
                     <ReadOnlyField label="Deskripsi Tindakan" value={detail.infoTindakan?.deskripsiTindakan} />
                     <ReadOnlyField label="Diperiksa Oleh" value={detail.infoTindakan?.diperiksaOleh || detail.keputusan?.userDisetujui} />

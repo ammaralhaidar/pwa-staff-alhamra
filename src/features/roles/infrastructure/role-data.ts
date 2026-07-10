@@ -10,6 +10,14 @@ export const appRoles: AppRole[] = [
     odooKey: "is_guru_quran",
   },
   {
+    title: "Guru Akademik",
+    subtitle: "Pengajar Mata Pelajaran",
+    gradient: ["#7E57C2", "#512DA8"],
+    icon: "graduation",
+    route: "/guru-akademik",
+    odooKey: "is_academic_teacher",
+  },
+  {
     title: "Musyrif",
     subtitle: "Pembimbing Asrama",
     gradient: ["#26C6DA", "#00ACC1"],

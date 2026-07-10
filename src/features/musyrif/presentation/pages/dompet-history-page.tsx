@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
+import { HistoryListSkeleton } from "@/components/feedback/page-skeletons";
 import { isDemoFallbackEnabled } from "@/lib/helpers";
 import { fallbackWalletHistory } from "../../application/musyrif-fallback-data";
 import { useWalletHistory } from "../../application/musyrif-queries";
@@ -32,7 +33,7 @@ export function DompetHistoryPage() {
         <section className="space-y-3 px-4 py-6">
           {query.isError ? <Card className="rounded-[22px] border-0 bg-white p-4 text-sm text-amber-700 shadow-sm">{isFallbackMode ? "Riwayat contoh ditampilkan karena API belum tersedia." : "Gagal memuat riwayat dompet dari API."}</Card> : null}
           {isInvalidId ? <Card className="rounded-[22px] border-0 bg-white p-6 text-center font-semibold text-red-600 shadow-sm">ID santri tidak valid.</Card> : null}
-          {query.isLoading ? <Card className="rounded-[22px] border-0 bg-white p-6 text-center font-semibold text-slate-500 shadow-sm">Memuat riwayat...</Card> : null}
+          {query.isLoading ? <HistoryListSkeleton /> : null}
           {items.map((item) => (
             <div 
               key={item.id} 

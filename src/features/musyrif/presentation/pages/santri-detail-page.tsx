@@ -4,6 +4,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DetailPageSkeleton } from "@/components/feedback/page-skeletons";
 import { isDemoFallbackEnabled } from "@/lib/helpers";
 import { fallbackMusyrifStudents, fallbackWalletBalance } from "../../application/musyrif-fallback-data";
 import { useChangeStudentPin, useMusyrifStudentDetail, useTopupWallet, useWalletBalance } from "../../application/musyrif-queries";
@@ -104,7 +105,7 @@ export function SantriDetailPage() {
       <div className="flex-1 overflow-y-auto pb-32">
         <section className="space-y-4 px-4 py-4">
           {isInvalidId ? <Card hasRing={false} className="rounded-[22px] border-0 bg-white p-6 text-center font-semibold text-red-600 shadow-sm">ID santri tidak valid.</Card> : null}
-          {studentQuery.isLoading ? <Card hasRing={false} className="rounded-[22px] border-0 bg-white p-6 text-center font-semibold text-slate-500 shadow-sm">Memuat detail santri...</Card> : null}
+          {studentQuery.isLoading ? <DetailPageSkeleton /> : null}
           {studentQuery.isError && fallback ? <Card hasRing={false} className="rounded-[22px] border-0 bg-white p-4 text-sm text-amber-700 shadow-sm">Detail contoh ditampilkan karena API belum tersedia. Action dinonaktifkan pada data fallback.</Card> : null}
           {studentQuery.isError && !fallback ? <Card hasRing={false} className="rounded-[22px] border-0 bg-white p-6 text-center font-semibold text-red-600 shadow-sm">Gagal memuat detail santri.</Card> : null}
           {!studentQuery.isLoading && !studentQuery.isError && !student ? <Card hasRing={false} className="rounded-[22px] border-0 bg-white p-6 text-center font-semibold text-slate-500 shadow-sm">Santri tidak ditemukan.</Card> : null}
