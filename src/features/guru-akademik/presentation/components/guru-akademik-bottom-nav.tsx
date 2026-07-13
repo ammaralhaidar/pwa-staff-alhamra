@@ -3,7 +3,7 @@ import { RoleBottomNav, type RoleBottomNavItem } from "@/components/layout/role-
 
 const items: RoleBottomNavItem[] = [
   { to: "/guru-akademik", label: "Beranda", icon: Home, end: true },
-  { to: "/guru-akademik/profile", label: "Akun", icon: UserCircle2 },
+  { to: "/guru-akademik/profile", label: "Profil", icon: UserCircle2 },
 ];
 
 export function GuruAkademikBottomNav() { return <RoleBottomNav items={items} />; }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Copy, X, Check, Gavel, RefreshCw, Search } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,6 +24,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 export function PelanggaranDetailPage({ accessType, isBinaan = false }: { accessType: PelanggaranAccessType; isBinaan?: boolean }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const rawPelanggaranId = useParams().pelanggaranId;
   const pelanggaranId = Number(rawPelanggaranId ?? 0);
   const isInvalidId = !Number.isFinite(pelanggaranId) || pelanggaranId <= 0;
@@ -48,7 +49,15 @@ export function PelanggaranDetailPage({ accessType, isBinaan = false }: { access
   const isFallbackMode = query.isError && isDemoFallbackEnabled();
   const isTindakanFallbackMode = tindakanQuery.isError && isDemoFallbackEnabled();
   const data = isFallbackMode ? fallbackDetail : apiDetail;
-  const tindakanOptions = isTindakanFallbackMode ? fallbackTindakanOptions : tindakanQuery.data ?? [];
+  const pelaporFromNavigation = typeof location.state === "object" && location.state !== null
+    && typeof (location.state as { pelaporName?: unknown }).pelaporName === "string"
+    ? (location.state as { pelaporName: string }).pelaporName.trim()
+    : "";
+  const pelaporName = data?.pelaporName?.trim() || pelaporFromNavigation;
+  const tindakanOptions = useMemo(
+    () => isTindakanFallbackMode ? fallbackTindakanOptions : tindakanQuery.data ?? [],
+    [isTindakanFallbackMode, tindakanQuery.data],
+  );
   const selectedTindakan = useMemo(
     () => tindakanOptions.find((item) => item.id === tindakanId),
     [tindakanId, tindakanOptions],
@@ -259,7 +268,7 @@ export function PelanggaranDetailPage({ accessType, isBinaan = false }: { access
           {/* Card: Pelapor */}
           <Card className="rounded-[20px] border-0 bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
             <p className="text-xs font-semibold text-slate-400">Pelapor :</p>
-            <p className="mt-1.5 text-sm font-bold text-slate-800">{safeText(data.pelaporName)}</p>
+            <p className="mt-1.5 text-sm font-bold text-slate-800">{safeText(pelaporName)}</p>
           </Card>
 
           {/* Card: Data Santri */}

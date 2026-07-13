@@ -4,9 +4,9 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 
 export function AcademicMenuCard({ to, title, description, icon, color }: { to: string; title: string; description: string; icon: ReactNode; color: string }) {
-  return <Link to={to}><Card className="flex items-center gap-4 rounded-[24px] border-0 bg-white p-4 shadow-sm transition active:scale-[0.99]">
-    <div className={`flex size-14 shrink-0 items-center justify-center rounded-2xl ${color}`}>{icon}</div>
-    <div className="min-w-0 flex-1"><h2 className="text-[15px] font-bold text-slate-900">{title}</h2><p className="mt-0.5 text-xs font-medium leading-relaxed text-slate-400">{description}</p></div>
-    <ChevronRight className="size-5 text-slate-300" />
+  return <Link to={to} className="block"><Card className="flex flex-row min-h-[112px] items-center gap-4 rounded-[26px] border-0 bg-white px-5 py-4 shadow-[0_8px_22px_rgba(15,23,42,0.06)] transition active:scale-[0.99]">
+    <div className={`flex size-[72px] shrink-0 items-center justify-center rounded-[22px] ${color}`}>{icon}</div>
+    <div className="min-w-0 flex-1"><h2 className="text-[17px] font-bold leading-tight text-slate-900">{title}</h2><p className="mt-1 text-[13px] font-medium leading-relaxed text-slate-400">{description}</p></div>
+    <ChevronRight className="size-6 shrink-0 text-slate-300" />
   </Card></Link>;
 }

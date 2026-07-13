@@ -8,7 +8,11 @@ export function PelanggaranCard({ item, accessType }: { item: Pelanggaran; acces
   const basePath = accessType === "pendidik" ? "/pelanggaran/pendidik" : "/pelanggaran";
   
   return (
-    <Link to={`${basePath}/${item.id}`} className="block">
+    <Link
+      to={`${basePath}/${item.id}`}
+      state={{ pelaporName: item.pelaporName }}
+      className="block"
+    >
       <Card className="rounded-[22px] border-0 bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)] hover:shadow-md transition-shadow duration-200">
         {/* Top Section: Avatar, Name, Badge, Chevron */}
         <div className="flex items-center gap-3">

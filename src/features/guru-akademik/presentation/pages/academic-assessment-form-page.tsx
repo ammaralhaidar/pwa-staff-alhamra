@@ -10,8 +10,7 @@ import { useCreateAcademicAssessment } from "../../application/guru-akademik-que
 import type { AcademicAssessmentStudentInput } from "../../domain/guru-akademik-types";
 import { GuruAkademikHeader } from "../components/guru-akademik-header";
 
-const scoreKeys = ["finalScore", "aspect1", "aspect2", "aspect3", "aspect4", "aspect5", "aspect6"] as const;
-type ScoreKey = (typeof scoreKeys)[number];
+type ScoreKey = "finalScore" | "aspect1" | "aspect2" | "aspect3" | "aspect4" | "aspect5" | "aspect6";
 
 export function AcademicAssessmentFormPage() {
   const navigate = useNavigate(); const create = useCreateAcademicAssessment();

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Camera, Keyboard, QrCode, VideoOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -110,7 +110,7 @@ function clearReaderHost(element: HTMLElement | null) {
 
 export function KeamananScanPage() {
   const navigate = useNavigate();
-  const readerIdRef = useRef(`keamanan-reader-${Math.random().toString(36).slice(2)}`);
+  const readerId = `keamanan-reader-${useId().replace(/:/g, "")}`;
   const readerHostRef = useRef<HTMLDivElement | null>(null);
   const scannerRef = useRef<Html5ScannerInstance | null>(null);
   const nativeBarcodeIntervalRef = useRef<number | null>(null);
@@ -160,6 +160,7 @@ export function KeamananScanPage() {
   };
 
   useEffect(() => {
+    const readerHost = readerHostRef.current;
     if (!isCameraActive) {
       stopNativeBarcodeLoop();
       // Clean up camera if deactivated
@@ -168,9 +169,9 @@ export function KeamananScanPage() {
         scannerRef.current = null;
         isRunningRef.current = false;
         isStartingRef.current = false;
-        void safeStopScanner(scanner).finally(() => clearReaderHost(readerHostRef.current));
+        void safeStopScanner(scanner).finally(() => clearReaderHost(readerHost));
       } else {
-        clearReaderHost(readerHostRef.current);
+        clearReaderHost(readerHost);
       }
       return;
     }
@@ -245,7 +246,7 @@ export function KeamananScanPage() {
         ];
         clearReaderHost(readerHostRef.current);
         const ScannerConstructor = Html5Qrcode as unknown as Html5QrcodeConstructor;
-        const scanner = new ScannerConstructor(readerIdRef.current, {
+        const scanner = new ScannerConstructor(readerId, {
           formatsToSupport,
         });
         scannerRef.current = scanner;
@@ -286,12 +287,12 @@ export function KeamananScanPage() {
         scannerRef.current = null;
         isRunningRef.current = false;
         isStartingRef.current = false;
-        void safeStopScanner(scanner).finally(() => clearReaderHost(readerHostRef.current));
+        void safeStopScanner(scanner).finally(() => clearReaderHost(readerHost));
       } else {
-        clearReaderHost(readerHostRef.current);
+        clearReaderHost(readerHost);
       }
     };
-  }, [isCameraActive, navigate]);
+  }, [isCameraActive, navigate, readerId]);
 
   return (
     <div className="relative mx-auto flex min-h-svh w-screen max-w-[430px] flex-col bg-white">
@@ -323,7 +324,7 @@ export function KeamananScanPage() {
         <Card className="relative overflow-hidden rounded-[32px] border border-slate-100 bg-[#F8FAFC] p-6 shadow-sm mt-4">
           <div className="relative flex aspect-square w-full flex-col items-center justify-center overflow-hidden rounded-3xl bg-[#F8FAFC]">
             <div
-              id={readerIdRef.current}
+              id={readerId}
               ref={readerHostRef}
               aria-hidden={!isCameraActive}
               className={`absolute inset-0 min-h-full min-w-full overflow-hidden rounded-3xl bg-slate-950 transition-opacity [&_canvas]:!h-full [&_canvas]:!w-full [&_canvas]:!object-cover [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover ${isCameraActive ? "opacity-100" : "pointer-events-none opacity-0"}`}

@@ -4,6 +4,10 @@ export type StoredProfile = {
   full_name?: string;
   username?: string;
   email?: string;
+  avatar?: string;
+  avatar_128?: string;
+  companyId?: number;
+  company_id?: number;
   login?: string;
   role?: string;
   role_name?: string;
@@ -60,6 +64,8 @@ export function resolveStoredProfile() {
       return {
         name: nested.name || nested.nama || nested.full_name || nested.username,
         email: nested.email || nested.login,
+        avatar: nested.avatar || nested.avatar_128,
+        companyId: nested.companyId || nested.company_id,
         role: nested.role || nested.role_name || nested.job_title,
         hasSessionData: true,
       };

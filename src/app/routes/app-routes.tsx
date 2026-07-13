@@ -29,8 +29,6 @@ const GuruAkademikProfilePage = lazy(async () => ({ default: (await import("@/fe
 const AcademicAttendanceListPage = lazy(async () => ({ default: (await import("@/features/guru-akademik/presentation/pages/academic-attendance-list-page")).AcademicAttendanceListPage }));
 const AcademicAttendanceFormPage = lazy(async () => ({ default: (await import("@/features/guru-akademik/presentation/pages/academic-attendance-form-page")).AcademicAttendanceFormPage }));
 const AcademicAttendanceDetailPage = lazy(async () => ({ default: (await import("@/features/guru-akademik/presentation/pages/academic-attendance-detail-page")).AcademicAttendanceDetailPage }));
-const AcademicAssessmentListPage = lazy(async () => ({ default: (await import("@/features/guru-akademik/presentation/pages/academic-assessment-list-page")).AcademicAssessmentListPage }));
-const AcademicAssessmentFormPage = lazy(async () => ({ default: (await import("@/features/guru-akademik/presentation/pages/academic-assessment-form-page")).AcademicAssessmentFormPage }));
 
 const KesantrianDashboardPage = lazy(async () => ({ default: (await import("@/features/kesantrian/presentation/pages/kesantrian-dashboard-page")).KesantrianDashboardPage }));
 const KesantrianIndexRedirect = lazy(async () => ({ default: (await import("@/features/kesantrian/presentation/pages/kesantrian-dashboard-page")).KesantrianIndexRedirect }));
@@ -94,8 +92,6 @@ export function AppRoutes() {
         <Route path="absensi" element={<AcademicAttendanceListPage />} />
         <Route path="absensi/tambah" element={<AcademicAttendanceFormPage />} />
         <Route path="absensi/:attendanceId" element={<AcademicAttendanceDetailPage />} />
-        <Route path="penilaian" element={<AcademicAssessmentListPage />} />
-        <Route path="penilaian/tambah" element={<AcademicAssessmentFormPage />} />
       </Route>
       <Route path="/kesantrian" element={<ProtectedRoute allowedRoles={["is_manajer_kesantrian"]}><KesantrianDashboardPage /></ProtectedRoute>}>
         <Route index element={<KesantrianIndexRedirect />} />
