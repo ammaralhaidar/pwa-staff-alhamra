@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Check, ChevronDown, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ErrorState } from "@/components/feedback/error-state";
-import { PageLoadingState } from "@/components/feedback/page-loading-state";
 import { getOdooErrorMessage } from "@/lib/helpers/odoo-response";
 import { useAcademicAttendanceMasterData, useAcademicStudentsByClass, useCreateAcademicAttendance } from "../../application/guru-akademik-queries";
 import type { AcademicAttendanceStatus } from "../../domain/guru-akademik-types";
@@ -31,6 +31,7 @@ export function AcademicAttendanceFormPage() {
   const [subjectId, setSubjectId] = useState("");
   const [lessonPeriodId, setLessonPeriodId] = useState("");
   const [teacherId, setTeacherId] = useState("");
+  const [openPicker, setOpenPicker] = useState<string | null>(null);
   const [statusesByStudent, setStatusesByStudent] = useState<Record<number, AcademicAttendanceStatus>>({});
   const [notesByStudent, setNotesByStudent] = useState<Record<number, string>>({});
   const [theme, setTheme] = useState("");
@@ -87,20 +88,20 @@ export function AcademicAttendanceFormPage() {
   return (
     <div className="mx-auto min-h-svh max-w-[430px] bg-[#EFF6FF]">
       <GuruAkademikHeader title="Absensi Siswa" subtitle="Kelola Absensi Siswa" onBack={() => navigate("/guru-akademik/absensi")} />
-      {masterQuery.isLoading ? <div className="px-4 py-5"><PageLoadingState label="Memuat data form..." /></div> : null}
+      {masterQuery.isLoading ? <div className="flex min-h-48 items-center justify-center"><Loader2 className="size-7 animate-spin text-[#288DE5]" aria-label="Memuat data form" /></div> : null}
       {masterQuery.isError ? <div className="px-4 py-5"><ErrorState message={getOdooErrorMessage(masterQuery.error, "Master data absensi gagal dimuat.")} onRetry={() => void masterQuery.refetch()} /></div> : null}
       {masterQuery.data ? (
         <>
           <section className="px-4 pt-5">
-            <Card className="space-y-4 rounded-[22px] border-0 p-4 shadow-sm">
-              <Field label="Tanggal"><Input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></Field>
-              <SelectField label="Kelas" value={classId} onValueChange={selectClass} placeholder="Pilih kelas" options={masterQuery.data.classes.map((item) => ({ value: String(item.id), label: item.name }))} />
-              <SelectField label="Jam Pelajaran" value={lessonPeriodId} onValueChange={setLessonPeriodId} placeholder="Pilih jam" options={masterQuery.data.lessonPeriods.map((item) => ({ value: String(item.id), label: item.name }))} />
-              <SelectField label="Mata Pelajaran" value={subjectId} onValueChange={setSubjectId} placeholder="Pilih mata pelajaran" options={masterQuery.data.subjects.map((item) => ({ value: String(item.id), label: item.name }))} />
+            <Card className="relative space-y-5 overflow-visible rounded-[22px] border-0 p-4 shadow-sm">
+              <Field label="Tanggal"><Input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-12" /></Field>
+              <InlineSearchSelectField id="class" label="Kelas" value={classId} onValueChange={selectClass} placeholder="Pilih kelas" options={masterQuery.data.classes.map((item) => ({ value: String(item.id), label: item.name }))} open={openPicker === "class"} onOpenChange={(open) => setOpenPicker(open ? "class" : null)} />
+              <InlineSearchSelectField id="lesson" label="Jam Pelajaran" value={lessonPeriodId} onValueChange={setLessonPeriodId} placeholder="Pilih jam" options={masterQuery.data.lessonPeriods.map((item) => ({ value: String(item.id), label: item.name }))} open={openPicker === "lesson"} onOpenChange={(open) => setOpenPicker(open ? "lesson" : null)} />
+              <InlineSearchSelectField id="subject" label="Mata Pelajaran" value={subjectId} onValueChange={setSubjectId} placeholder="Pilih mata pelajaran" options={masterQuery.data.subjects.map((item) => ({ value: String(item.id), label: item.name }))} open={openPicker === "subject"} onOpenChange={(open) => setOpenPicker(open ? "subject" : null)} />
               {masterQuery.data.isManager ? (
-                <SelectField label="Guru Pengajar *" value={teacherId} onValueChange={setTeacherId} placeholder="Pilih guru" options={masterQuery.data.teachers.map((item) => ({ value: String(item.id), label: item.nip ? `${item.name} (${item.nip})` : item.name }))} />
+                <InlineSearchSelectField id="teacher" label="Guru Pengajar *" value={teacherId} onValueChange={setTeacherId} placeholder="Pilih guru" options={masterQuery.data.teachers.map((item) => ({ value: String(item.id), label: item.nip ? `${item.name} (${item.nip})` : item.name }))} open={openPicker === "teacher"} onOpenChange={(open) => setOpenPicker(open ? "teacher" : null)} />
               ) : (
-                <Field label="Guru Pengajar"><Input value={masterQuery.data.currentTeacher?.name || "Guru login tidak terdeteksi"} readOnly className="bg-slate-50 text-slate-600" /></Field>
+                <Field label="Guru Pengajar"><Input value={masterQuery.data.currentTeacher?.name || "Guru login tidak terdeteksi"} readOnly className="h-12 bg-slate-50 text-slate-600" /></Field>
               )}
             </Card>
           </section>
@@ -111,8 +112,8 @@ export function AcademicAttendanceFormPage() {
             </TabsList>
             <TabsContent value="attendance" className="pt-5">
               <Card className="rounded-[22px] border-0 p-4 shadow-sm">
-                <h2 className="mb-3 text-[15px] font-bold">Daftar Siswa</h2>
-                {studentsQuery.isFetching ? <PageLoadingState label="Memuat siswa..." /> : null}
+                <h2 className="mb-3 text-[15px] font-bold text-black">Daftar Siswa</h2>
+                {studentsQuery.isFetching ? <div className="flex justify-center py-10"><Loader2 className="size-6 animate-spin text-[#288DE5]" aria-label="Memuat siswa" /></div> : null}
                 {studentsQuery.isError ? <ErrorState message={getOdooErrorMessage(studentsQuery.error, "Daftar siswa gagal dimuat.")} onRetry={() => void studentsQuery.refetch()} /> : null}
                 {!classId ? <p className="py-10 text-center text-sm leading-6 text-slate-400">Pilih kelas terlebih dahulu untuk menampilkan daftar siswa.</p> : null}
                 {classId && !studentsQuery.isFetching && !studentsQuery.isError && !students.length ? <p className="py-10 text-center text-sm text-slate-400">Tidak ada siswa aktif pada kelas ini.</p> : null}
@@ -137,9 +138,21 @@ export function AcademicAttendanceFormPage() {
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="block space-y-1.5"><span className="text-xs font-bold text-slate-500">{label}</span>{children}</label>;
+  return <label className="block space-y-2"><span className="text-xs font-bold text-slate-500">{label}</span>{children}</label>;
 }
 
-function SelectField({ label, value, onValueChange, placeholder, options }: { label: string; value: string; onValueChange: (value: string) => void; placeholder: string; options: Array<{ value: string; label: string }> }) {
-  return <Field label={label}><Select value={value} onValueChange={onValueChange}><SelectTrigger className="h-11 w-full"><SelectValue placeholder={placeholder} /></SelectTrigger><SelectContent>{options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select></Field>;
+function InlineSearchSelectField({ id, label, value, onValueChange, placeholder, options, open, onOpenChange }: { id: string; label: string; value: string; onValueChange: (value: string) => void; placeholder: string; options: Array<{ value: string; label: string }>; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [search, setSearch] = useState("");
+  const selected = options.find((option) => option.value === value);
+  const filteredOptions = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return keyword ? options.filter((option) => option.label.toLowerCase().includes(keyword)) : options;
+  }, [options, search]);
+  const selectOption = (nextValue: string) => {
+    onValueChange(nextValue);
+    setSearch("");
+    onOpenChange(false);
+  };
+
+  return <div className="relative space-y-2"><span className="block text-xs font-bold text-slate-500">{label}</span><button id={id} type="button" onClick={() => onOpenChange(!open)} className="flex h-12 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-left text-sm text-slate-700"><span className={`min-w-0 flex-1 truncate ${selected ? "font-medium" : "text-slate-400"}`}>{selected?.label || placeholder}</span><ChevronDown className={`size-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} /></button>{open ? <div className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-30 overflow-hidden rounded-2xl border border-slate-100 bg-white p-2 shadow-xl"><div className="flex h-10 items-center gap-2 rounded-xl bg-slate-50 px-3"><Search className="size-4 shrink-0 text-slate-400" /><Input autoFocus value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Cari ${label.toLowerCase()}...`} className="h-full border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0" /></div><div className="mt-2 max-h-48 overflow-y-auto"><div className="space-y-1">{filteredOptions.map((option) => <button key={option.value} type="button" onClick={() => selectOption(option.value)} className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-slate-700 hover:bg-blue-50"><span className="min-w-0 flex-1 break-words">{option.label}</span>{option.value === value ? <Check className="size-4 shrink-0 text-[#288DE5]" /> : null}</button>)}{!filteredOptions.length ? <p className="px-3 py-6 text-center text-sm text-slate-400">Data tidak ditemukan.</p> : null}</div></div></div> : null}</div>;
 }

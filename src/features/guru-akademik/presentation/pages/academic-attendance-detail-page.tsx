@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ErrorState } from "@/components/feedback/error-state";
 import { PageLoadingState } from "@/components/feedback/page-loading-state";
 import { getOdooErrorMessage } from "@/lib/helpers/odoo-response";
@@ -35,6 +36,7 @@ export function AcademicAttendanceDetailPage() {
   const [theme, setTheme] = useState("");
   const [statusesByLine, setStatusesByLine] = useState<Record<number, AcademicAttendanceStatus>>({});
   const [notesByLine, setNotesByLine] = useState<Record<number, string>>({});
+  const [actionToConfirm, setActionToConfirm] = useState<"finalize" | "reopen" | "delete" | null>(null);
   const item = query.data;
 
   function startEditing() {
@@ -79,25 +81,46 @@ export function AcademicAttendanceDetailPage() {
   }
 
   function finalizeItem() {
-    if (!window.confirm("Finalisasi absensi ini? Data akan dikunci.")) return;
-    finalize.mutate(parsedId, {
-      onSuccess: (result) => toast.success(result.message),
-      onError: (error) => toast.error(getOdooErrorMessage(error, "Gagal memfinalisasi absensi.")),
-    });
+    setActionToConfirm("finalize");
   }
 
   function reopenItem() {
-    reopen.mutate(parsedId, {
-      onSuccess: (result) => toast.success(result.message),
-      onError: (error) => toast.error(getOdooErrorMessage(error, "Gagal mengembalikan absensi ke draft.")),
-    });
+    setActionToConfirm("reopen");
   }
 
   function deleteItem() {
-    if (!window.confirm("Hapus absensi ini? Tindakan ini tidak dapat dibatalkan.")) return;
+    setActionToConfirm("delete");
+  }
+
+  function confirmAction() {
+    if (!actionToConfirm) return;
+
+    if (actionToConfirm === "finalize") {
+      finalize.mutate(parsedId, {
+        onSuccess: (result) => {
+          toast.success(result.message);
+          setActionToConfirm(null);
+        },
+        onError: (error) => toast.error(getOdooErrorMessage(error, "Gagal memfinalisasi absensi.")),
+      });
+      return;
+    }
+
+    if (actionToConfirm === "reopen") {
+      reopen.mutate(parsedId, {
+        onSuccess: (result) => {
+          toast.success(result.message);
+          setActionToConfirm(null);
+        },
+        onError: (error) => toast.error(getOdooErrorMessage(error, "Gagal mengembalikan absensi ke draft.")),
+      });
+      return;
+    }
+
     remove.mutate(parsedId, {
       onSuccess: (result) => {
         toast.success(result.message);
+        setActionToConfirm(null);
         navigate("/guru-akademik/absensi", { replace: true });
       },
       onError: (error) => toast.error(getOdooErrorMessage(error, "Gagal menghapus absensi.")),
@@ -110,8 +133,8 @@ export function AcademicAttendanceDetailPage() {
       <GuruAkademikHeader title="Detail Absensi" subtitle={item.state === "done" ? "Absensi selesai" : "Absensi draft"} onBack={() => navigate("/guru-akademik/absensi")} />
       <section className="space-y-4 px-4 py-5 pb-32">
         <Card className="rounded-[22px] border-0 p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3"><h2 className="text-[16px] font-bold">{title}</h2><span className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-bold ${item.state === "done" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>{item.state === "done" ? "Selesai" : "Draft"}</span></div>
-          <dl className="mt-4 space-y-2 text-sm">
+          <div className="flex items-start justify-between gap-3"><h2 className="text-[16px] font-bold text-black">{title}</h2><span className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-bold ${item.state === "done" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>{item.state === "done" ? "Selesai" : "Draft"}</span></div>
+          <dl className="space-y-2 text-sm">
             <Row label="Tanggal" value={[item.day, item.date].filter(Boolean).join(", ") || "-"} />
             <Row label="Kelas" value={item.className} />
             <Row label="Jam Pelajaran" value={item.lessonPeriod > 0 ? `Jam ke-${item.lessonPeriod}` : "-"} />
@@ -120,12 +143,12 @@ export function AcademicAttendanceDetailPage() {
           </dl>
         </Card>
         <Card className="rounded-[22px] border-0 p-4 shadow-sm">
-          <h2 className="text-[15px] font-bold">Materi</h2>
+          <h2 className="text-[15px] font-bold text-black">Materi</h2>
           {isEditing ? <div className="mt-3 space-y-3"><Field label="Tema"><Input value={theme} onChange={(event) => setTheme(event.target.value)} placeholder="Tema (opsional)" /></Field><Field label="Materi *"><Textarea value={material} onChange={(event) => setMaterial(event.target.value)} className="min-h-28" /></Field></div> : <><p className="mt-3 text-sm font-semibold">{item.material.content || "-"}</p>{item.material.theme ? <p className="mt-1 text-xs text-slate-500">Tema: {item.material.theme}</p> : null}</>}
         </Card>
         <Card className="rounded-[22px] border-0 p-4 shadow-sm">
-          <h2 className="text-[15px] font-bold">Rekap Kehadiran</h2>
-          <p className="mt-3 text-sm text-slate-600">Hadir {recap.present} • Izin {recap.permitted} • Sakit {recap.sick} • Alpa {recap.absent}</p>
+          <h2 className="text-[15px] font-bold text-black">Rekap Kehadiran</h2>
+          <p className="text-sm text-slate-600">Hadir {recap.present} • Izin {recap.permitted} • Sakit {recap.sick} • Alpa {recap.absent}</p>
           <div className="mt-4 space-y-3">{item.items.map((student) => {
             const lineId = student.id;
             const attendance = lineId ? statusesByLine[lineId] ?? student.status : student.status;
@@ -136,8 +159,40 @@ export function AcademicAttendanceDetailPage() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-white/95 p-3"><div className="mx-auto flex max-w-[430px] gap-2">
         {isEditing ? <><Button type="button" variant="outline" onClick={() => setIsEditing(false)} disabled={isPending} className="h-11 flex-1 rounded-xl">Batal</Button><Button type="button" onClick={saveChanges} disabled={isPending} className="h-11 flex-[2] rounded-xl bg-[#288DE5]">Simpan Perubahan</Button></> : item.state === "draft" ? <><Button type="button" variant="outline" onClick={deleteItem} disabled={isPending} className="h-11 flex-1 rounded-xl border-red-200 text-red-600">Hapus</Button><Button type="button" variant="outline" onClick={startEditing} disabled={isPending} className="h-11 flex-1 rounded-xl">Edit</Button><Button type="button" onClick={finalizeItem} disabled={isPending} className="h-11 flex-[1.4] rounded-xl bg-[#288DE5]">Finalisasi</Button></> : <Button type="button" onClick={reopenItem} disabled={isPending} className="h-11 w-full rounded-xl bg-[#288DE5]">Kembalikan ke Draft</Button>}
       </div></div>
+      <ConfirmationDialog
+        action={actionToConfirm}
+        isPending={isPending}
+        onClose={() => setActionToConfirm(null)}
+        onConfirm={confirmAction}
+      />
     </main>
   );
+}
+
+function ConfirmationDialog({ action, isPending, onClose, onConfirm }: {
+  action: "finalize" | "reopen" | "delete" | null;
+  isPending: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const content = action === "finalize"
+    ? { title: "Finalisasi Absensi?", description: "Absensi yang sudah difinalisasi tidak dapat diubah sebelum dikembalikan ke draft.", button: "Finalisasi", className: "bg-[#288DE5] hover:bg-[#1f7ed0]" }
+    : action === "reopen"
+      ? { title: "Kembalikan ke Draft?", description: "Absensi akan dapat diedit kembali setelah dikembalikan ke draft.", button: "Kembalikan", className: "bg-[#288DE5] hover:bg-[#1f7ed0]" }
+      : { title: "Hapus Absensi?", description: "Data absensi akan dihapus permanen dan tidak dapat dikembalikan.", button: "Hapus", className: "bg-red-600 hover:bg-red-700" };
+
+  return <Dialog open={Boolean(action)} onOpenChange={(open) => { if (!open && !isPending) onClose(); }}>
+    <DialogContent className="w-[calc(100%-2rem)] max-w-[360px] rounded-[22px] p-5" showCloseButton={!isPending}>
+      <DialogHeader className="space-y-2 text-left">
+        <DialogTitle className="text-lg font-bold text-slate-900">{content.title}</DialogTitle>
+        <DialogDescription className="text-sm leading-6 text-slate-500">{content.description}</DialogDescription>
+      </DialogHeader>
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <Button type="button" variant="outline" disabled={isPending} onClick={onClose} className="h-11 rounded-xl">Batal</Button>
+        <Button type="button" disabled={isPending} onClick={onConfirm} className={`h-11 rounded-xl ${content.className}`}>{isPending ? "Memproses..." : content.button}</Button>
+      </div>
+    </DialogContent>
+  </Dialog>;
 }
 
 function Row({ label, value }: { label: string; value: string }) {
