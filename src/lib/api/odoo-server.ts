@@ -15,7 +15,11 @@ function isLikelyUnproxiedLocalApi404(response: Response, requestUrl: string) {
 }
 
 export function getOdooConfig() {
-  const baseUrl = (import.meta.env.VITE_ODOO_BASE_URL as string | undefined) ?? "";
+  const configuredBaseUrl = (import.meta.env.VITE_ODOO_BASE_URL as string | undefined) ?? "";
+  // Production requests must stay on the PWA origin and pass through the
+  // server-side Vercel proxy. Calling Odoo directly would trigger CORS and
+  // expose infrastructure configuration to the browser bundle.
+  const baseUrl = import.meta.env.PROD ? "" : configuredBaseUrl;
   const database = import.meta.env.VITE_ODOO_DATABASE as string | undefined;
 
   if (!database) {
@@ -83,7 +87,10 @@ export async function postOdoo<T>(
       console.error("fetch failed:", error);
       console.groupEnd();
     }
-    throw error;
+    throw new Error(
+      "Tidak dapat terhubung ke server. Periksa koneksi internet atau konfigurasi proxy API.",
+      { cause: error },
+    );
   }
 
   const body = await response.json().catch((error) => {

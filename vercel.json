@@ -21,10 +21,6 @@
   ],
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://dev16alhamra.cendana2000.id/api/:path*"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
