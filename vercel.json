@@ -25,6 +25,9 @@
       "dest": "/api/odoo?path=$path"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
