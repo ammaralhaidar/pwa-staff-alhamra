@@ -21,7 +21,8 @@
   ],
   "routes": [
     {
-      "handle": "filesystem"
+      "src": "/api/(?<path>.*)",
+      "dest": "/api/odoo?path=$path"
     },
     {
       "src": "/(.*)",

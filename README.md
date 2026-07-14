@@ -69,7 +69,7 @@ VITE_API_DEBUG=false
 VITE_PWA_DEV=false
 ```
 
-Production proxy berada di `api/[...path].ts`. Vercel akan menerima request `/api/*`, lalu meneruskannya ke `ODOO_PROXY_TARGET`. Dengan pola ini, browser tidak request langsung ke Odoo dan tidak terkena CORS.
+Production proxy berada di `api/odoo.ts`. Route Vercel meneruskan request `/api/*` ke Function tersebut, lalu ke `ODOO_PROXY_TARGET`. Dengan pola ini, browser tidak request langsung ke Odoo dan tidak terkena CORS.
 
 Pastikan environment variable Vercel dipisah antara Preview dan Production agar database dev dan production tidak tercampur.
 
