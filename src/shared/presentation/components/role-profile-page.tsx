@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { Briefcase, ChevronRight, HelpCircle, Key, LogOut, Mail, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { appQueryClient } from "@/app/providers/app-providers";
 
 import { InfoRow } from "@/components/data-display/info-row";
@@ -31,6 +31,7 @@ export function RoleProfilePage({
   fallbackNotice = "Data session pengguna belum lengkap. Menampilkan fallback sementara.",
 }: RoleProfilePageProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -86,7 +87,11 @@ export function RoleProfilePage({
           <div className="mt-2 rounded-2xl border border-[#EAECF0] bg-white px-2 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
             <SettingRow icon={<Key className="h-5 w-5 text-[#288DE5]" />} label="Ubah Password" onClick={() => setIsChangePasswordOpen(true)} />
             <div className="mx-4 h-px bg-gray-100" />
-            <SettingRow icon={<HelpCircle className="h-5 w-5 text-[#288DE5]" />} label="Bantuan" />
+            <SettingRow
+              icon={<HelpCircle className="h-5 w-5 text-[#288DE5]" />}
+              label="Bantuan"
+              onClick={() => navigate("/help", { state: { from: location.pathname } })}
+            />
           </div>
         </section>
 
