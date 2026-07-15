@@ -13,7 +13,7 @@ import {
 import type { AttendancePresence, GuruQuranStudent, Halaqoh, Sesi, Ustadz } from "../../domain/guru-quran-types";
 import { GuruQuranHeader } from "../components/guru-quran-header";
 
-const KEHADIRAN_OPTIONS = ["Hadir", "Sakit", "Izin", "Alpa"] as const;
+const KEHADIRAN_OPTIONS = ["Setor", "Tidak Setor"] as const;
 
 export function CreateTahfidzAttendancePage() {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ export function CreateTahfidzAttendancePage() {
   function handleHalaqohSelect(halaqoh: Halaqoh) {
     const next: Record<number, AttendancePresence> = {};
     halaqoh.siswa.forEach((student) => {
-      next[student.id] = "Hadir";
+      next[student.id] = "Setor";
     });
     setSelectedHalaqoh(halaqoh);
     setAttendanceMap(next);
@@ -78,7 +78,7 @@ export function CreateTahfidzAttendancePage() {
         keterangan,
         absen_lines: siswaList.map((student) => ({
           siswa_id: student.id,
-          kehadiran: attendanceMap[student.id] ?? "Hadir",
+          kehadiran: attendanceMap[student.id] ?? "Setor",
         })),
       });
 
@@ -159,7 +159,7 @@ export function CreateTahfidzAttendancePage() {
                 key={siswa.id}
                 no={index + 1}
                 siswa={siswa}
-                kehadiran={attendanceMap[siswa.id] ?? "Hadir"}
+                kehadiran={attendanceMap[siswa.id] ?? "Setor"}
                 onChangeKehadiran={(value) => handleKehadiranChange(siswa.id, value)}
               />
             ))}
