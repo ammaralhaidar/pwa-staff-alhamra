@@ -1,6 +1,6 @@
 export type AttendanceStatus = "draft" | "done";
 
-export type AttendancePresence = "Hadir" | "Sakit" | "Izin" | "Alpa";
+export type AttendancePresence = "Setor" | "Tidak Setor" | "Hadir" | "Sakit" | "Izin" | "Alpa";
 
 export type TimeRangeFilter = "today" | "7days" | "30days" | "all";
 
