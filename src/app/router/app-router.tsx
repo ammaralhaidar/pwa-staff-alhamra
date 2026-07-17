@@ -2,6 +2,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import { AppRoutes } from "@/app/routes/app-routes";
+import { AppErrorBoundary } from "@/components/feedback/app-error-boundary";
 import { PageLoadingState } from "@/components/feedback/page-loading-state";
 import { persistLastActiveRoleRoute } from "@/lib/storage";
 
@@ -26,9 +27,11 @@ export function AppRouter() {
 
   return (
     <>
-      <Suspense fallback={<PageLoadingState label="Memuat halaman..." />}>
-        <AppRoutes />
-      </Suspense>
+      <AppErrorBoundary>
+        <Suspense fallback={<PageLoadingState label="Memuat halaman..." />}>
+          <AppRoutes />
+        </Suspense>
+      </AppErrorBoundary>
       {showRoleSwitchSkeleton ? <div className="fixed inset-0 z-[100] bg-[#EFF6FF]"><PageLoadingState label="Memuat role..." /></div> : null}
     </>
   );
