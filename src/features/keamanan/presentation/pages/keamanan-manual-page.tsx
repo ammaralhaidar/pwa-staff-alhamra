@@ -158,7 +158,11 @@ export function KeamananManualPage() {
                           <p>NIS: {result.permission.studentNis}</p>
                         )}
                         {result.permission.className && (
-                          <p>Kelas {result.permission.className}</p>
+                          <p>
+                            {/^kelas\b/i.test(result.permission.className)
+                              ? result.permission.className
+                              : `Kelas ${result.permission.className}`}
+                          </p>
                         )}
                         {result.permission.kamar && (
                           <p>Kamar: {result.permission.kamar}</p>

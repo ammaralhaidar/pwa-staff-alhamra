@@ -158,14 +158,27 @@ function normalizeStatus(stateValue: string, labelValue: string): KeamananPermis
 export function mapPermission(value: unknown): KeamananPermission {
   const raw = record(value);
   const nested = record(raw.data ?? raw.detail ?? raw.permission ?? raw.perijinan);
-  const source = Object.keys(nested).length ? nested : raw;
+  // Beberapa endpoint mengembalikan metadata di wrapper dan data santri di
+  // dalam `data`. Gabungkan keduanya agar field wrapper tidak ikut terbuang.
+  const source = Object.keys(nested).length ? { ...raw, ...nested } : raw;
   const siswa = record(source.siswa ?? source.santri ?? source.student);
   const detail = record(source.detail ?? source.info_perizinan ?? source.info_perijinan ?? source.perizinan);
   const penjemputan = record(source.penjemputan ?? source.info_penjemputan);
   const realisasi = record(source.realisasi ?? source.info_realisasi);
   const permissionId = numberValue(source.permission_id, source.permissionId, source.perijinan_id, source.izin_id, source.id);
   const perijinanId = numberValue(source.perijinan_id, source.permission_id, source.izin_id, source.permissionId, source.id);
-  const studentName = text(siswa.name, siswa.nama, source.student_name, source.nama_siswa, source.nama_santri, source.siswa_name, "Santri");
+  const studentName = text(
+    siswa.name,
+    siswa.nama,
+    source.student_name,
+    source.nama_siswa,
+    source.nama_santri,
+    source.siswa_name,
+    source.siswa,
+    source.santri,
+    source.student,
+    "Santri",
+  );
   const studentNis = text(siswa.nis, siswa.no_induk, siswa.barcode, source.student_nis, source.nis, source.no_induk, source.barcode);
   const className = text(siswa.kelas, siswa.class_name, siswa.ruang_kelas, source.class_name, source.kelas, source.ruang_kelas);
   const state = text(source.state, source.status);
