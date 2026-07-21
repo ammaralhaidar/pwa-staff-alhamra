@@ -30,7 +30,11 @@ export function CreateTahfidzAttendancePage() {
   const createMutation = useCreateTahfidzAttendance();
   const confirmMutation = useConfirmTahfidzAttendance();
 
-  const siswaList = selectedHalaqoh?.siswa ?? [];
+  const siswaList = useMemo(() => {
+    const raw = selectedHalaqoh?.siswa ?? [];
+    return [...raw].sort((a, b) => a.name.localeCompare(b.name, "id", { sensitivity: "base" }));
+  }, [selectedHalaqoh?.siswa]);
+
   const ustadzOptions = useMemo(() => {
     const fromHalaqoh = selectedHalaqoh?.ustadz ?? [];
     return fromHalaqoh.length ? fromHalaqoh : ustadzQuery.data ?? [];

@@ -200,20 +200,23 @@ export function mapAttendanceList(raw: unknown): AttendanceSession[] {
 }
 
 export function mapTahfidzStudents(raw: unknown): TahfidzStudent[] {
-  return arrayFrom(unwrapOdooData(raw)).map((item) => {
-    const status = text(item.status, item.statusPenilaian).toLowerCase();
-    const normalizedStatus: StudentAssessmentStatus = status === "done" ? "done" : status === "pending" ? "pending" : "draft";
-    return {
-      tahfidzId: numberValue(item.tahfidz_id, item.id),
-      studentId: numberValue(item.siswa_id, item.student_id, item.santri_id, item.santriId),
-      studentName: text(item.siswa_name, item.student_name, item.santri_name, item.nama, item.name, "Santri"),
-      nis: text(item.nis) || undefined,
-      kelas: text(item.kelas) || undefined,
-      status: normalizedStatus,
-      summaryHafalan: text(item.summary_hafalan, item.hafalan, item.last_tahfidz) || undefined,
-      raw: item,
-    };
-  }).filter((item) => item.tahfidzId > 0);
+  return arrayFrom(unwrapOdooData(raw))
+    .map((item) => {
+      const status = text(item.status, item.statusPenilaian).toLowerCase();
+      const normalizedStatus: StudentAssessmentStatus = status === "done" ? "done" : status === "pending" ? "pending" : "draft";
+      return {
+        tahfidzId: numberValue(item.tahfidz_id, item.id),
+        studentId: numberValue(item.siswa_id, item.student_id, item.santri_id, item.santriId),
+        studentName: text(item.siswa_name, item.student_name, item.santri_name, item.nama, item.name, "Santri"),
+        nis: text(item.nis) || undefined,
+        kelas: text(item.kelas) || undefined,
+        status: normalizedStatus,
+        summaryHafalan: text(item.summary_hafalan, item.hafalan, item.last_tahfidz) || undefined,
+        raw: item,
+      };
+    })
+    .filter((item) => item.tahfidzId > 0)
+    .sort((a, b) => a.studentName.localeCompare(b.studentName, "id", { sensitivity: "base" }));
 }
 
 export function mapTahfidzDraftDetail(rawValue: unknown, tahfidzId: number): TahfidzDraftDetail | null {
