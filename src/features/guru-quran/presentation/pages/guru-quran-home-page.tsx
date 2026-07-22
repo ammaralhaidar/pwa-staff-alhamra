@@ -146,10 +146,7 @@ function CompletionAwareSessionCard({
     }
     const total = students.length;
     const done = students.filter((s) => s.status === "done").length;
-    let status: AttendanceStatus = "draft";
-    if (total > 0 && done === total) status = "done";
-    else if (done > 0) status = "partial";
-    else status = "draft";
+    const status: AttendanceStatus = total > 0 && done === total ? "done" : done > 0 ? "partial" : "draft";
 
     return { computedStatus: status, computedDoneCount: done, computedTotalCount: total };
   }, [session.doneCount, session.jumlahSiswa, session.status, studentsQuery.data]);

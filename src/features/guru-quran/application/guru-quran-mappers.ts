@@ -184,14 +184,12 @@ export function mapAttendanceSession(value: unknown): AttendanceSession {
   const totalCount = numberValue(raw.jumlah_siswa, raw.jumlah_santri, raw.jumlah_items, raw.jumlahItems, arrayFrom(raw.absen_lines).length);
   const doneCount = numberValue(raw.done_count, raw.doneCount, raw.jumlah_selesai);
 
-  let status: AttendanceStatus = "draft";
-  if (statusText === "done" || statusText === "selesai" || (totalCount > 0 && doneCount === totalCount)) {
-    status = "done";
-  } else if (statusText === "partial" || statusText === "proses" || doneCount > 0) {
-    status = "partial";
-  } else {
-    status = "draft";
-  }
+  const status: AttendanceStatus =
+    statusText === "done" || statusText === "selesai" || (totalCount > 0 && doneCount === totalCount)
+      ? "done"
+      : statusText === "partial" || statusText === "proses" || doneCount > 0
+        ? "partial"
+        : "draft";
 
   return {
     id,
