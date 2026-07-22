@@ -91,15 +91,18 @@ export function CreateTahfidzAttendancePage() {
           await confirmMutation.mutateAsync(result.id);
           if (result.data) addLocalTahfidzSession(result.data);
           toast.success("Absen Tahfidz berhasil disimpan & dikonfirmasi!");
-        } catch {
+          navigate("/guru-quran");
+        } catch (confirmErr) {
           if (result.data) addLocalTahfidzSession(result.data);
-          toast.warning("Absen tersimpan (Draft). Konfirmasi gagal.");
+          toast.error(
+            confirmErr instanceof Error
+              ? confirmErr.message
+              : "Absen tersimpan (Draft), namun gagal dikonfirmasi.",
+          );
         }
       } else {
-        toast.success("Absen Tahfidz berhasil disimpan.");
+        toast.error("Gagal menyimpan Absen Tahfidz");
       }
-
-      navigate("/guru-quran");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Gagal menyimpan absen");
     }

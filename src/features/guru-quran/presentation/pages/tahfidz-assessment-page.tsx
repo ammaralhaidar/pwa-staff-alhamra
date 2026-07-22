@@ -130,15 +130,28 @@ function StudentCard({
           <p className="mt-0.5 text-xs font-medium text-[#98A2B3]">NIS: {student.nis || "-"}</p>
         </div>
 
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-bold ${
-            isDone
-              ? "bg-[#ECFDF3] text-[#027A48]"
-              : "bg-[#FEF3F2] text-[#B42318]"
-          }`}
-        >
-          {isDone ? "Selesai" : "Belum"}
-        </span>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-bold ${
+              isDone
+                ? "bg-[#ECFDF3] text-[#027A48]"
+                : "bg-[#FEF3F2] text-[#B42318]"
+            }`}
+          >
+            {isDone ? "Selesai" : "Belum"}
+          </span>
+          {isDone && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                student.kategoriTahfidz === "murojaah"
+                  ? "bg-[#ECFDF3] text-[#027A48] border border-[#ABEFC6]"
+                  : "bg-[#EFF8FF] text-[#175CD3] border border-[#B2DDFF]"
+              }`}
+            >
+              {student.kategoriTahfidz === "murojaah" ? "Murojaah" : "Ziyadah"}
+            </span>
+          )}
+        </div>
       </div>
 
       {student.summaryHafalan && (

@@ -18,7 +18,7 @@ function isRecord(value: unknown): value is RawRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function record(value: unknown): RawRecord {
+export function record(value: unknown): RawRecord {
   return isRecord(value) ? value : {};
 }
 
@@ -59,7 +59,7 @@ function text(...values: unknown[]): string {
   return "";
 }
 
-function numberValue(...values: unknown[]): number {
+export function numberValue(...values: unknown[]): number {
   for (const value of values) {
     if (typeof value === "number" && Number.isFinite(value)) return value;
     if (typeof value === "string" && value.trim() && Number.isFinite(Number(value))) return Number(value);

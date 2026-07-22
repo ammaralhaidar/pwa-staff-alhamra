@@ -30,7 +30,11 @@ export function AttendanceSessionCard({
             <p className="truncate text-[15px] font-bold text-[#101828]">
               {session.sesiName}
             </p>
-            <AssessmentStatusBadge status={session.status} />
+            <AssessmentStatusBadge
+              status={session.status}
+              doneCount={session.doneCount}
+              totalCount={session.jumlahSiswa}
+            />
           </div>
           <p className="mt-1 text-sm font-semibold text-[#475467]">
             {session.ustadzName}
