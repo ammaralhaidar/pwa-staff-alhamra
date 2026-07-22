@@ -12,6 +12,8 @@ import {
   mapTahfidzOptionList,
   mapWalletBalance,
   mapWalletHistory,
+  numberValue,
+  record,
   unwrapOdooData,
 } from "../application/musyrif-mappers";
 import type {
@@ -83,8 +85,14 @@ export async function fetchMusyrifPerijinanDetail(izinId: number): Promise<Musyr
   return mapPerijinan(unwrapOdooData(response));
 }
 
-export async function createMusyrifPerijinan(payload: CreatePerijinanPayload) {
-  return assertOdooSuccess(await postOdoo(apiEndpoints.musyrif.perizinanCreate, compactPayload(payload)));
+export async function createMusyrifPerijinan(payload: CreatePerijinanPayload): Promise<{ id: number; raw: unknown }> {
+  const response = await postOdoo(apiEndpoints.musyrif.perizinanCreate, compactPayload(payload));
+  assertOdooSuccess(response);
+  const data = record(unwrapOdooData(response));
+  return {
+    id: numberValue(data.id, data.izin_id, (response as Record<string, unknown>)?.id),
+    raw: response,
+  };
 }
 
 export async function checkMusyrifPerijinan(payload: CheckPerijinanPayload) {

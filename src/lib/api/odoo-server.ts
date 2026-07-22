@@ -126,5 +126,17 @@ export async function postOdoo<T>(
     throw new Error(message);
   }
 
+  const payload = (body.result ?? body) as Record<string, unknown>;
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    const customStatus = typeof payload.status === "number" ? payload.status : undefined;
+    if (customStatus !== undefined && customStatus >= 400) {
+      const errorMessage =
+        (typeof payload.error === "string" && payload.error) ||
+        (typeof payload.message === "string" && payload.message) ||
+        `Gagal memproses permintaan (${customStatus})`;
+      throw new Error(errorMessage);
+    }
+  }
+
   return body as T;
 }
