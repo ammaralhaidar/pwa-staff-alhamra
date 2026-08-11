@@ -125,15 +125,12 @@ export function TahfidzStudentScorePage() {
   );
 
   const filteredSurahOptions = useMemo(() => {
-    const currentNumber = draftDetail?.currentSurah?.number;
-    if (readonly || kategoriTahfidz === "murojaah" || !currentNumber) return sortedSurahOptions;
-    return sortedSurahOptions.filter((item) => item.number >= currentNumber);
-  }, [draftDetail?.currentSurah?.number, kategoriTahfidz, readonly, sortedSurahOptions]);
+    return sortedSurahOptions;
+  }, [sortedSurahOptions]);
 
   const filteredSurahLanjutanOptions = useMemo(() => {
-    if (!selectedSurah) return sortedSurahOptions;
-    return sortedSurahOptions.filter((item) => item.number > selectedSurah.number);
-  }, [selectedSurah, sortedSurahOptions]);
+    return sortedSurahOptions;
+  }, [sortedSurahOptions]);
 
   const currentSurahId = draftDetail?.currentSurah?.id;
   const currentAyatAwalNumber = draftDetail?.currentAyatAwal?.nomorAyat;
