@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+.codegraph
+.commandcode
+lint-output.txt
+.DS_Store
+.playwright-mcp
+screenshots

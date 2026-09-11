@@ -63,7 +63,7 @@ export function GlobalHeader({ title, onBack, showRoleButton = true, action, bot
           </div>
         </div>
 
-        {showRoleButton && !onBack && !action && (
+        {showRoleButton && (
           <Button
             type="button"
             size="icon"

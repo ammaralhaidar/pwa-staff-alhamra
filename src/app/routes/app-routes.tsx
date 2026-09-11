@@ -63,6 +63,12 @@ const SantriDetailPage = lazy(async () => ({ default: (await import("@/features/
 const UangSakuHistoryPage = lazy(async () => ({ default: (await import("@/features/musyrif/presentation/pages/uang-saku-history-page")).UangSakuHistoryPage }));
 const DompetHistoryPage = lazy(async () => ({ default: (await import("@/features/musyrif/presentation/pages/dompet-history-page")).DompetHistoryPage }));
 
+const PengumumanDashboardPage = lazy(async () => ({ default: (await import("@/features/pengumuman/presentation/pages/pengumuman-dashboard-page")).PengumumanDashboardPage }));
+const PengumumanHomePage = lazy(async () => ({ default: (await import("@/features/pengumuman/presentation/pages/pengumuman-home-page")).PengumumanHomePage }));
+const PengumumanFormPage = lazy(async () => ({ default: (await import("@/features/pengumuman/presentation/pages/pengumuman-form-page")).PengumumanFormPage }));
+const PengumumanDetailPage = lazy(async () => ({ default: (await import("@/features/pengumuman/presentation/pages/pengumuman-detail-page")).PengumumanDetailPage }));
+const PengumumanProfilePage = lazy(async () => ({ default: (await import("@/features/pengumuman/presentation/pages/pengumuman-profile-page")).PengumumanProfilePage }));
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -71,6 +77,13 @@ export function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/roles" element={<RoleSelectionPage />} />
       <Route path="/help" element={<HelpPage />} />
+      <Route path="/pengumuman" element={<ProtectedRoute allowedRoles={["can_manage_pengumuman", "is_pengumuman_staff", "is_pengumuman_manager", "is_manajer_kesantrian"]}><PengumumanDashboardPage /></ProtectedRoute>}>
+        <Route index element={<PengumumanHomePage />} />
+        <Route path="profile" element={<PengumumanProfilePage />} />
+      </Route>
+      <Route path="/pengumuman/buat" element={<ProtectedRoute allowedRoles={["can_manage_pengumuman", "is_pengumuman_staff", "is_pengumuman_manager", "is_manajer_kesantrian"]}><PengumumanFormPage /></ProtectedRoute>} />
+      <Route path="/pengumuman/:id/edit" element={<ProtectedRoute allowedRoles={["can_manage_pengumuman", "is_pengumuman_staff", "is_pengumuman_manager", "is_manajer_kesantrian"]}><PengumumanFormPage /></ProtectedRoute>} />
+      <Route path="/pengumuman/:id" element={<ProtectedRoute allowedRoles={["can_manage_pengumuman", "is_pengumuman_staff", "is_pengumuman_manager", "is_manajer_kesantrian"]}><PengumumanDetailPage /></ProtectedRoute>} />
       <Route path="/keamanan" element={<ProtectedRoute allowedRoles={["is_petugas_keamanan"]}><KeamananDashboardPage /></ProtectedRoute>}>
         <Route index element={<KeamananHomePage />} />
         <Route path="profile" element={<KeamananProfilePage />} />

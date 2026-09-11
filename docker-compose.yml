@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  pwa_staff:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pwa_staff_alhamra
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    environment:
+      - NODE_ENV=production
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 32M

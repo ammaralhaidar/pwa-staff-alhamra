@@ -34,3 +34,8 @@ scratch.cjs
 *.njsproj
 *.sln
 *.sw?
+
+# Tooling
+.codegraph/
+.commandcode/
+lint-output.txt
