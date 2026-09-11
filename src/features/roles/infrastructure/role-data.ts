@@ -57,5 +57,6 @@ export const appRoles: AppRole[] = [
     icon: "megaphone",
     route: "/pengumuman",
     odooKey: "can_manage_pengumuman",
+    alternateOdooKeys: ["is_pengumuman_manager", "is_pengumuman_staff", "is_manajer_kesantrian"],
   },
 ];
