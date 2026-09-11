@@ -1,5 +1,5 @@
 
-import { AlertCircle, BookOpen, GraduationCap, Heart, Shield, ShieldCheck, Trophy, Users } from "lucide-react";
+import { AlertCircle, BookOpen, GraduationCap, Heart, Megaphone, Shield, ShieldCheck, Trophy, Users } from "lucide-react";
 import type { AppRole, RoleIconName } from "@/features/roles/domain/role";
 
 const roleIcons: Record<RoleIconName, typeof BookOpen> = {
@@ -11,6 +11,7 @@ const roleIcons: Record<RoleIconName, typeof BookOpen> = {
   alert: AlertCircle,
   heart: Heart,
   admin: ShieldCheck,
+  megaphone: Megaphone,
 };
 
 type RoleCardProps = {

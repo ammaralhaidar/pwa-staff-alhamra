@@ -50,4 +50,12 @@ export const appRoles: AppRole[] = [
     route: "/kesantrian",
     odooKey: "is_manajer_kesantrian",
   },
+  {
+    title: "Pengumuman",
+    subtitle: "Kelola Artikel & Pengumuman",
+    gradient: ["#FB8C00", "#EF6C00"],
+    icon: "megaphone",
+    route: "/pengumuman",
+    odooKey: "can_manage_pengumuman",
+  },
 ];

@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  pwa_staff:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_ODOO_DATABASE: db_alhamra_production
+    container_name: pwa_staff_alhamra
+    restart: always
+    ports:
+      - "3001:80"
+    environment:
+      - NODE_ENV=production
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 128M
+        reservations:
+          memory: 32M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
