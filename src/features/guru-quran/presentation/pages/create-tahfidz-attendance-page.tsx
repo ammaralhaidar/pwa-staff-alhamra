@@ -13,7 +13,7 @@ import {
 import type { AttendancePresence, GuruQuranStudent, Halaqoh, Sesi, Ustadz } from "../../domain/guru-quran-types";
 import { GuruQuranHeader } from "../components/guru-quran-header";
 
-const KEHADIRAN_OPTIONS = ["Hadir", "Sakit", "Izin", "Alpa"] as const;
+const KEHADIRAN_OPTIONS = ["Setor", "Tidak Setor"] as const;
 
 export function CreateTahfidzAttendancePage() {
   const navigate = useNavigate();
@@ -30,7 +30,11 @@ export function CreateTahfidzAttendancePage() {
   const createMutation = useCreateTahfidzAttendance();
   const confirmMutation = useConfirmTahfidzAttendance();
 
-  const siswaList = selectedHalaqoh?.siswa ?? [];
+  const siswaList = useMemo(() => {
+    const raw = selectedHalaqoh?.siswa ?? [];
+    return [...raw].sort((a, b) => a.name.localeCompare(b.name, "id", { sensitivity: "base" }));
+  }, [selectedHalaqoh?.siswa]);
+
   const ustadzOptions = useMemo(() => {
     const fromHalaqoh = selectedHalaqoh?.ustadz ?? [];
     return fromHalaqoh.length ? fromHalaqoh : ustadzQuery.data ?? [];
@@ -39,7 +43,7 @@ export function CreateTahfidzAttendancePage() {
   function handleHalaqohSelect(halaqoh: Halaqoh) {
     const next: Record<number, AttendancePresence> = {};
     halaqoh.siswa.forEach((student) => {
-      next[student.id] = "Hadir";
+      next[student.id] = "Setor";
     });
     setSelectedHalaqoh(halaqoh);
     setAttendanceMap(next);
@@ -78,7 +82,7 @@ export function CreateTahfidzAttendancePage() {
         keterangan,
         absen_lines: siswaList.map((student) => ({
           siswa_id: student.id,
-          kehadiran: attendanceMap[student.id] ?? "Hadir",
+          kehadiran: attendanceMap[student.id] ?? "Setor",
         })),
       });
 
@@ -87,15 +91,18 @@ export function CreateTahfidzAttendancePage() {
           await confirmMutation.mutateAsync(result.id);
           if (result.data) addLocalTahfidzSession(result.data);
           toast.success("Absen Tahfidz berhasil disimpan & dikonfirmasi!");
-        } catch {
+          navigate("/guru-quran");
+        } catch (confirmErr) {
           if (result.data) addLocalTahfidzSession(result.data);
-          toast.warning("Absen tersimpan (Draft). Konfirmasi gagal.");
+          toast.error(
+            confirmErr instanceof Error
+              ? confirmErr.message
+              : "Absen tersimpan (Draft), namun gagal dikonfirmasi.",
+          );
         }
       } else {
-        toast.success("Absen Tahfidz berhasil disimpan.");
+        toast.error("Gagal menyimpan Absen Tahfidz");
       }
-
-      navigate("/guru-quran");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Gagal menyimpan absen");
     }
@@ -159,7 +166,7 @@ export function CreateTahfidzAttendancePage() {
                 key={siswa.id}
                 no={index + 1}
                 siswa={siswa}
-                kehadiran={attendanceMap[siswa.id] ?? "Hadir"}
+                kehadiran={attendanceMap[siswa.id] ?? "Setor"}
                 onChangeKehadiran={(value) => handleKehadiranChange(siswa.id, value)}
               />
             ))}

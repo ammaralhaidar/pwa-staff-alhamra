@@ -10,11 +10,5 @@ export function PelanggaranBottomNav({ accessType, showBinaan }: { accessType: P
     { to: `${basePath}/profile`, label: "Profil", icon: UserRound, end: false },
   ];
 
-  return (
-    <RoleBottomNav
-      items={items}
-      className="px-5"
-      itemClassName="min-w-20 px-4"
-    />
-  );
+  return <RoleBottomNav items={items} />;
 }

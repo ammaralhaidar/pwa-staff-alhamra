@@ -10,7 +10,7 @@ import { GuruQuranHeader } from "../components/guru-quran-header";
 import { AttendanceSessionCard } from "../components/attendance-session-card";
 
 const FILTER_WAKTU_OPTIONS = ["Hari Ini", "7 Hari", "30 Hari", "Semua"] as const;
-const FILTER_STATUS_OPTIONS = ["Semua", "Draft", "Selesai"] as const;
+const FILTER_STATUS_OPTIONS = ["Semua", "Belum Disimak", "Disimak Sebagian", "Selesai"] as const;
 
 type FilterWaktu = (typeof FILTER_WAKTU_OPTIONS)[number];
 type FilterStatus = (typeof FILTER_STATUS_OPTIONS)[number];
@@ -52,9 +52,11 @@ export function GuruQuranHomePage() {
       const passStatus =
         filterStatus === "Semua"
           ? true
-          : filterStatus === "Draft"
+          : filterStatus === "Belum Disimak"
             ? status === "draft"
-            : status === "done";
+            : filterStatus === "Disimak Sebagian"
+              ? status === "partial"
+              : status === "done";
 
       return passWaktu && passStatus;
     });
@@ -132,15 +134,41 @@ function CompletionAwareSessionCard({
   onClick: () => void;
 }) {
   const studentsQuery = useTahfidzStudents(session.id);
-  const computedStatus: AttendanceStatus = studentsQuery.data?.length && studentsQuery.data.every((student) => student.status === "done")
-    ? "done"
-    : session.status;
+
+  const { computedStatus, computedDoneCount, computedTotalCount } = useMemo(() => {
+    const students = studentsQuery.data;
+    if (!students || students.length === 0) {
+      return {
+        computedStatus: session.status,
+        computedDoneCount: session.doneCount ?? 0,
+        computedTotalCount: session.jumlahSiswa,
+      };
+    }
+    const total = students.length;
+    const done = students.filter((s) => s.status === "done").length;
+    let status: AttendanceStatus = "draft";
+    if (total > 0 && done === total) status = "done";
+    else if (done > 0) status = "partial";
+    else status = "draft";
+
+    return { computedStatus: status, computedDoneCount: done, computedTotalCount: total };
+  }, [session.doneCount, session.jumlahSiswa, session.status, studentsQuery.data]);
 
   useEffect(() => {
     if (studentsQuery.data) onStatusChange(computedStatus);
   }, [computedStatus, onStatusChange, studentsQuery.data]);
 
-  return <AttendanceSessionCard session={{ ...session, status: computedStatus }} onClick={onClick} />;
+  return (
+    <AttendanceSessionCard
+      session={{
+        ...session,
+        status: computedStatus,
+        doneCount: computedDoneCount,
+        jumlahSiswa: computedTotalCount,
+      }}
+      onClick={onClick}
+    />
+  );
 }
 
 function FilterDropdown({

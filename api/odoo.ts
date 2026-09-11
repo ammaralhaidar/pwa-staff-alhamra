@@ -35,6 +35,23 @@ function copyResponseHeaders(upstream: Response, response: ServerResponse) {
   });
 }
 
+function getTargetUrl(request: IncomingMessage, odooTarget: string) {
+  const requestUrl = new URL(request.url ?? "/", "https://pwa.invalid");
+  const apiPath = requestUrl.searchParams.get("path") ?? "";
+
+  if (!apiPath.startsWith("v2/")) {
+    return null;
+  }
+
+  const targetUrl = new URL(`/api/${apiPath}`, odooTarget);
+
+  requestUrl.searchParams.forEach((value, key) => {
+    if (key !== "path") targetUrl.searchParams.append(key, value);
+  });
+
+  return targetUrl;
+}
+
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
   const odooTarget = process.env.ODOO_PROXY_TARGET;
 
@@ -45,8 +62,15 @@ export default async function handler(request: IncomingMessage, response: Server
     return;
   }
 
-  const requestUrl = request.url ?? "/";
-  const targetUrl = new URL(requestUrl, odooTarget).toString();
+  const targetUrl = getTargetUrl(request, odooTarget);
+
+  if (!targetUrl) {
+    response.statusCode = 404;
+    response.setHeader("Content-Type", "application/json");
+    response.end(JSON.stringify({ error: { message: "Endpoint API tidak ditemukan." } }));
+    return;
+  }
+
   const method = request.method ?? "GET";
 
   try {

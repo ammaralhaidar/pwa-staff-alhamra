@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DetailPageSkeleton } from "@/components/feedback/page-skeletons";
 import { isDemoFallbackEnabled } from "@/lib/helpers";
 import { fallbackMusyrifPerijinan } from "../../application/musyrif-fallback-data";
 import { useCheckMusyrifPerijinan, useMusyrifPerijinanDetail } from "../../application/musyrif-queries";
@@ -66,11 +67,7 @@ export function MusyrifPerijinanDetailPage() {
               ID perijinan tidak valid.
             </Card>
           ) : null}
-          {query.isLoading ? (
-            <Card className="rounded-[22px] border-0 bg-white p-6 text-center font-semibold text-slate-500 shadow-sm">
-              Memuat detail perijinan...
-            </Card>
-          ) : null}
+          {query.isLoading ? <DetailPageSkeleton /> : null}
           {query.isError && fallback ? (
             <Card className="rounded-[22px] border-0 bg-white p-4 text-sm text-amber-700 shadow-sm">
               Detail contoh ditampilkan karena API belum tersedia. Action dinonaktifkan pada data fallback.

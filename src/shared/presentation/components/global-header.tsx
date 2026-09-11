@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ArrowLeft, UserSquare2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { appAssets } from "@/shared/assets/app-assets";
+import { RoleSwitcherSheet } from "@/shared/presentation/components/role-switcher-sheet";
 
 interface GlobalHeaderProps {
   title: string;
@@ -14,7 +14,7 @@ interface GlobalHeaderProps {
 }
 
 export function GlobalHeader({ title, onBack, showRoleButton = true, action, bottom, className }: GlobalHeaderProps) {
-  const navigate = useNavigate();
+  const [isRoleSheetOpen, setIsRoleSheetOpen] = useState(false);
 
   const formatDateIndonesian = () => {
     const options: Intl.DateTimeFormatOptions = {
@@ -63,13 +63,13 @@ export function GlobalHeader({ title, onBack, showRoleButton = true, action, bot
           </div>
         </div>
 
-        {showRoleButton && !onBack && !action && (
+        {showRoleButton && (
           <Button
             type="button"
             size="icon"
             variant="ghost"
             className="size-10 shrink-0 rounded-full bg-white/20 text-white hover:bg-white/30"
-            onClick={() => navigate("/role-selection")}
+            onClick={() => setIsRoleSheetOpen(true)}
           >
             <UserSquare2 className="size-5" />
           </Button>
@@ -81,6 +81,8 @@ export function GlobalHeader({ title, onBack, showRoleButton = true, action, bot
           {bottom}
         </div>
       )}
+
+      <RoleSwitcherSheet open={isRoleSheetOpen} onOpenChange={setIsRoleSheetOpen} />
     </header>
   );
 }

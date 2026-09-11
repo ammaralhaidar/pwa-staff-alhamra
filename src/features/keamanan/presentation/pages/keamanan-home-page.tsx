@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { CalendarDays, LogIn, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,9 +8,9 @@ import { isDemoFallbackEnabled } from "@/lib/helpers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fallbackKeamananDashboard } from "../../application/keamanan-fallback-data";
-import { isCheckoutPermission, isOutsidePermission } from "../../application/keamanan-mappers";
+import { getPerijinanId, isCheckoutPermission, isOutsidePermission } from "../../application/keamanan-mappers";
 import { mergeLocalPermissionState } from "../../application/keamanan-storage";
-import { useKeamananDashboard } from "../../application/keamanan-queries";
+import { useKeamananDashboard, useKeamananDetail } from "../../application/keamanan-queries";
 import type { KeamananPermission, KeamananTab, KeamananTimeRange } from "../../domain/keamanan-types";
 import { KeamananHeader } from "../components/keamanan-header";
 import { PermissionCard } from "../components/permission-card";
@@ -30,12 +31,18 @@ function withinRange(permission: KeamananPermission, range: KeamananTimeRange) {
 }
 
 export function KeamananHomePage() {
-  const [tab, setTab] = useState<KeamananTab>("checkout");
+  const location = useLocation();
+  const initialTab = ((location.state as { tab?: KeamananTab } | null)?.tab === "outside" ? "outside" : "checkout") satisfies KeamananTab;
+  const [tab, setTab] = useState<KeamananTab>(initialTab);
   const [search, setSearch] = useState("");
   const [range, setRange] = useState<KeamananTimeRange>("today");
   const [selectedPermission, setSelectedPermission] = useState<KeamananPermission | null>(null);
 
   const query = useKeamananDashboard();
+  const selectedPermissionId = selectedPermission ? (selectedPermission.permissionId || getPerijinanId(selectedPermission)) : 0;
+  const detailQuery = useKeamananDetail(selectedPermissionId);
+  const selectedIsLocalOutside = selectedPermission?.status === "outside";
+  const detailPermission = selectedIsLocalOutside ? selectedPermission : detailQuery.data ?? selectedPermission;
   const isUsingFallback = query.isError && isDemoFallbackEnabled();
   const dashboard = query.data ?? (isUsingFallback ? fallbackKeamananDashboard : {
     summary: { totalPerijinan: 0, disetujui: 0, ijinKeluar: 0 },
@@ -145,7 +152,7 @@ export function KeamananHomePage() {
       <DetailPerizinanModal
         open={!!selectedPermission}
         onOpenChange={(open) => !open && setSelectedPermission(null)}
-        permission={selectedPermission}
+        permission={detailPermission}
       />
     </main>
   );

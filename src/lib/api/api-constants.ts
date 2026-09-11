@@ -22,6 +22,17 @@ export const apiEndpoints = {
     absenTahsinCreate: "/api/v2/absen_tahsin/create",
     absenTahfidzConfirm: "/api/v2/absen_tahfidz/confirm",
   },
+  guruAkademik: {
+    attendanceDropdown: "/api/v2/guru/absensi/dropdown",
+    attendanceStudentsByClass: "/api/v2/guru/absensi/siswa_kelas",
+    attendanceList: "/api/v2/guru/absensi/list",
+    attendanceDetail: "/api/v2/guru/absensi/detail",
+    attendanceCreate: "/api/v2/guru/absensi/create",
+    attendanceUpdate: "/api/v2/guru/absensi/update",
+    attendanceDone: "/api/v2/guru/absensi/done",
+    attendanceDraft: "/api/v2/guru/absensi/draft",
+    attendanceDelete: "/api/v2/guru/absensi/delete",
+  },
   pelanggaran: {
     list: "/api/v2/pelanggaran/list",
     siswaSearch: "/api/v2/pelanggaran/siswa/search",

@@ -55,22 +55,25 @@ export async function searchSecurityManual(keyword: string): Promise<KeamananMan
 }
 
 export async function updateSecurityStatus(payload: KeamananUpdatePayload) {
-  const response = await postOdoo(apiEndpoints.keamanan.updateStatus, {
+  const params = {
     permission_id: payload.permissionId,
     action_type: payload.actionType,
-  });
+  };
+  const response = await postOdoo(apiEndpoints.keamanan.updateStatus, params);
   assertOdooSuccess(response);
   return response;
 }
 
 export async function checkoutSecurity(payload: number | KeamananActionPayload) {
-  const response = await postOdoo(apiEndpoints.keamanan.checkout, { perijinan_id: resolvePerijinanId(payload) });
-  assertOdooSuccess(response);
-  return response;
+  return updateSecurityStatus({
+    permissionId: resolvePerijinanId(payload),
+    actionType: "checkout",
+  });
 }
 
 export async function checkinSecurity(payload: number | KeamananActionPayload) {
-  const response = await postOdoo(apiEndpoints.keamanan.checkin, { perijinan_id: resolvePerijinanId(payload) });
-  assertOdooSuccess(response);
-  return response;
+  return updateSecurityStatus({
+    permissionId: resolvePerijinanId(payload),
+    actionType: "checkin",
+  });
 }

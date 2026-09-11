@@ -35,15 +35,20 @@ export function RoleBottomNav({
   iconWrapClassName,
   activeIconWrapClassName,
 }: RoleBottomNavProps) {
+  const columnCount = centerSpacer ? 3 : items.length;
+
   return (
     <nav
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[430px] border-t border-blue-100 bg-white/95 px-8 py-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur",
+        "fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-slate-100 bg-white/95 px-5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur",
         className,
       )}
     >
       {centerAction}
-      <div className={cn("flex items-center justify-between", contentClassName)}>
+      <div
+        className={cn("grid min-h-14 items-center", contentClassName)}
+        style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
+      >
         {items.map((item, index) => {
           const Icon = item.icon;
           const shouldRenderSpacer = centerSpacer && index === Math.ceil(items.length / 2);
@@ -56,15 +61,15 @@ export function RoleBottomNav({
                 end={item.end}
                 className={({ isActive }) =>
                   cn(
-                    "flex min-w-24 flex-col items-center gap-1 rounded-2xl px-5 py-2 text-xs font-semibold transition",
-                    isActive ? activeClassName ?? "bg-blue-50 text-blue-600" : inactiveClassName ?? "text-slate-400 hover:text-blue-500",
+                    "flex min-w-0 w-[84px] justify-self-center flex-col items-center gap-1 rounded-2xl px-3 py-1.5 text-[11px] font-medium transition active:scale-95",
+                    isActive ? activeClassName ?? "bg-[#EFF6FF] text-[#288DE5]" : inactiveClassName ?? "text-slate-400 hover:text-blue-500",
                     itemClassName,
                   )
                 }
               >
                 {({ isActive }) => (
                   <>
-                    <span className={cn(iconWrapClassName, isActive && activeIconWrapClassName)}>
+                    <span className={cn("flex items-center justify-center", iconWrapClassName, isActive && activeIconWrapClassName)}>
                       <Icon className="size-5" />
                     </span>
                     {item.label}

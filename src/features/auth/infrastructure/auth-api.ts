@@ -8,7 +8,10 @@ type OdooLoginUser = {
   name?: string;
   login?: string;
   username?: string;
+  email?: string;
   session_id?: string;
+  company_id?: number;
+  avatar_128?: string;
   roles?: Record<string, boolean>;
 };
 
@@ -45,6 +48,10 @@ export const authApi = {
         userId: user.uid,
         name: user.name ?? "",
         login: user.login ?? user.username ?? credentials.username ?? "",
+        username: user.username ?? user.login ?? credentials.username,
+        email: user.email,
+        companyId: user.company_id,
+        avatar: user.avatar_128,
         roleFlags: user.roles ?? {},
         roles: Object.entries(user.roles ?? {})
           .filter(([, isActive]) => isActive)
@@ -54,5 +61,15 @@ export const authApi = {
   },
   async logout(): Promise<void> {
     await postOdoo(apiEndpoints.auth.logout, {});
+  },
+  async changePassword(oldPassword: string, newPassword: string): Promise<string> {
+    const response = await postOdoo<unknown>(apiEndpoints.auth.changePassword, {
+      old_password: oldPassword,
+      new_password: newPassword,
+    });
+    const result = unwrapOdooData<{ status?: number | string; message?: string }>(response);
+    const isSuccess = result?.status === 200 || result?.status === "success" || result?.status === "Success";
+    if (!isSuccess) throw new Error(result?.message || "Gagal mengubah password.");
+    return result.message || "Password berhasil diubah. Silakan login ulang.";
   },
 };

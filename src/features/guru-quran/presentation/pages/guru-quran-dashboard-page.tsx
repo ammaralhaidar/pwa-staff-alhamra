@@ -12,7 +12,7 @@ export function GuruQuranDashboardPage() {
   return (
     <div className="relative min-h-svh bg-[#EFF6FF]">
       {/* Page content */}
-      <div className="pb-[70px]">
+      <div className="pb-[86px]">
         <Outlet />
       </div>
 

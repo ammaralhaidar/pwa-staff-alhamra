@@ -1,6 +1,6 @@
-export type AttendanceStatus = "draft" | "done";
+export type AttendanceStatus = "draft" | "partial" | "done";
 
-export type AttendancePresence = "Hadir" | "Sakit" | "Izin" | "Alpa";
+export type AttendancePresence = "Setor" | "Tidak Setor" | "Hadir" | "Sakit" | "Izin" | "Alpa";
 
 export type TimeRangeFilter = "today" | "7days" | "30days" | "all";
 
@@ -75,9 +75,12 @@ export type AttendanceSession = {
   ustadzName: string;
   tanggal: string;
   jumlahSiswa: number;
+  doneCount?: number;
   status: AttendanceStatus;
   raw?: Record<string, unknown>;
 };
+
+export type TahfidzCategory = "ziyadah" | "murojaah";
 
 export type TahfidzStudent = {
   tahfidzId: number;
@@ -87,12 +90,15 @@ export type TahfidzStudent = {
   kelas?: string;
   status: StudentAssessmentStatus;
   summaryHafalan?: string;
+  kategoriTahfidz?: TahfidzCategory;
   raw?: Record<string, unknown>;
 };
 
 export type TahfidzDraftDetail = {
   tahfidzId: number;
   lastTahfidz?: string;
+  totalHafalanSiswa?: string;
+  kategoriTahfidz?: TahfidzCategory;
   currentSurah?: {
     id: number;
     name: string;
@@ -108,6 +114,7 @@ export type TahfidzDraftDetail = {
 
 export type TahfidzHistoryDetail = {
   tahfidzId: number;
+  totalHafalanSiswa?: string;
   surah?: string;
   surah2?: string;
   ayatAwal?: number;
@@ -117,6 +124,7 @@ export type TahfidzHistoryDetail = {
   jmlBaris?: number;
   keterangan?: string;
   isChangeSurah: boolean;
+  kategoriTahfidz?: TahfidzCategory;
   raw?: Record<string, unknown>;
 };
 
@@ -144,6 +152,7 @@ export type SubmitTahfidzScorePayload = {
   ayat_akhir: number;
   nilai_id: number;
   jml_baris: number;
+  kategori_tahfidz: TahfidzCategory;
   keterangan?: string;
   is_change_surah?: boolean;
   surah2_id?: number;

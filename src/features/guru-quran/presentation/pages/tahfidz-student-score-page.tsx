@@ -12,6 +12,7 @@ import {
   User,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { GuruQuranHeader } from "../components/guru-quran-header";
 import {
   useAyatList,
@@ -30,6 +31,7 @@ import type {
   Ayat,
   NilaiOption,
   Surah,
+  TahfidzCategory,
   TahfidzHistoryDetail,
   TahfidzStudent,
 } from "../../domain/guru-quran-types";
@@ -47,6 +49,7 @@ export function TahfidzStudentScorePage() {
   const absenId = Number(attendanceId) || 0;
   const tahfidzId = Number(studentId) || 0;
 
+  const [kategoriTahfidz, setKategoriTahfidz] = useState<TahfidzCategory>("ziyadah");
   const [selectedSurah, setSelectedSurah] = useState<Surah | null>(null);
   const [selectedAyatAwal, setSelectedAyatAwal] = useState<Ayat | null>(null);
   const [selectedAyatAkhir, setSelectedAyatAkhir] = useState<Ayat | null>(null);
@@ -122,15 +125,12 @@ export function TahfidzStudentScorePage() {
   );
 
   const filteredSurahOptions = useMemo(() => {
-    const currentNumber = draftDetail?.currentSurah?.number;
-    if (readonly || !currentNumber) return sortedSurahOptions;
-    return sortedSurahOptions.filter((item) => item.number >= currentNumber);
-  }, [draftDetail?.currentSurah?.number, readonly, sortedSurahOptions]);
+    return sortedSurahOptions;
+  }, [sortedSurahOptions]);
 
   const filteredSurahLanjutanOptions = useMemo(() => {
-    if (!selectedSurah) return sortedSurahOptions;
-    return sortedSurahOptions.filter((item) => item.number > selectedSurah.number);
-  }, [selectedSurah, sortedSurahOptions]);
+    return sortedSurahOptions;
+  }, [sortedSurahOptions]);
 
   const currentSurahId = draftDetail?.currentSurah?.id;
   const currentAyatAwalNumber = draftDetail?.currentAyatAwal?.nomorAyat;
@@ -140,9 +140,9 @@ export function TahfidzStudentScorePage() {
     const options = ayatQuery.data ?? [];
     const currentAyat = currentAyatAwalNumber;
     const isCurrentSurah = Boolean(selectedSurahId && currentSurahId && selectedSurahId === currentSurahId);
-    if (readonly || !currentAyat || !isCurrentSurah) return options;
+    if (readonly || kategoriTahfidz === "murojaah" || !currentAyat || !isCurrentSurah) return options;
     return options.filter((item) => item.nomorAyat >= currentAyat);
-  }, [ayatQuery.data, currentAyatAwalNumber, currentSurahId, readonly, selectedSurahId]);
+  }, [ayatQuery.data, currentAyatAwalNumber, currentSurahId, kategoriTahfidz, readonly, selectedSurahId]);
 
   const ayatAkhirOptions = useMemo(() => {
     if (lanjutSurah) return ayatLanjutanQuery.data ?? [];
@@ -157,7 +157,7 @@ export function TahfidzStudentScorePage() {
   }, [isDoneStudent]);
 
   useEffect(() => {
-    if (!draftDetail?.currentSurah || selectedSurah || readonly) return;
+    if (!draftDetail?.currentSurah || selectedSurah || readonly || kategoriTahfidz === "murojaah") return;
 
     const surah = sortedSurahOptions.find((item) =>
       item.id === draftDetail.currentSurah?.id ||
@@ -165,10 +165,10 @@ export function TahfidzStudentScorePage() {
     );
 
     if (surah) setSelectedSurah(surah);
-  }, [draftDetail, readonly, selectedSurah, sortedSurahOptions]);
+  }, [draftDetail, kategoriTahfidz, readonly, selectedSurah, sortedSurahOptions]);
 
   useEffect(() => {
-    if (!draftDetail?.currentAyatAwal || selectedAyatAwal || readonly) return;
+    if (!draftDetail?.currentAyatAwal || selectedAyatAwal || readonly || kategoriTahfidz === "murojaah") return;
 
     const ayat = (ayatQuery.data ?? []).find((item) =>
       item.id === draftDetail.currentAyatAwal?.id ||
@@ -176,10 +176,14 @@ export function TahfidzStudentScorePage() {
     );
 
     if (ayat) setSelectedAyatAwal(ayat);
-  }, [ayatQuery.data, draftDetail, readonly, selectedAyatAwal]);
+  }, [ayatQuery.data, draftDetail, kategoriTahfidz, readonly, selectedAyatAwal]);
 
   useEffect(() => {
     if (!historyDetail || !readonly) return;
+
+    if (historyDetail.kategoriTahfidz) {
+      setKategoriTahfidz(historyDetail.kategoriTahfidz);
+    }
 
     if (!selectedSurah && historyDetail.surah) {
       const surah = findByName(sortedSurahOptions, historyDetail.surah);
@@ -252,6 +256,9 @@ export function TahfidzStudentScorePage() {
   const lastTahfidzDisplay = readonly
     ? formatHistoryTahfidz(historyDetail) || parseLastTahfidz(draftDetail?.lastTahfidz)
     : parseLastTahfidz(draftDetail?.lastTahfidz);
+  const totalHafalanDisplay = readonly
+    ? historyDetail?.totalHafalanSiswa || draftDetail?.totalHafalanSiswa
+    : draftDetail?.totalHafalanSiswa;
 
   const statusMessage = useMemo(() => {
     if (!hasDraftContext) return `Data sesi belum lengkap (${missingDraftFields.join(", ")}). Surah dan ayat awal belum bisa diprefill.`;
@@ -285,6 +292,7 @@ export function TahfidzStudentScorePage() {
         ayat_akhir: selectedAyatAkhir.id,
         nilai_id: selectedNilai.id,
         jml_baris: 0,
+        kategori_tahfidz: kategoriTahfidz,
         keterangan: keterangan.trim() || undefined,
       });
 
@@ -321,8 +329,11 @@ export function TahfidzStudentScorePage() {
           </div>
         </div>
 
-        {lastTahfidzDisplay ? (
-          <TahfidzTerakhirCard value={lastTahfidzDisplay} />
+        {lastTahfidzDisplay || totalHafalanDisplay ? (
+          <TahfidzTerakhirCard
+            tahfidzTerakhir={lastTahfidzDisplay}
+            totalHafalan={totalHafalanDisplay}
+          />
         ) : (
           <div className="mt-4 rounded-2xl border border-[#B3E0FF] bg-[#F0F9FF] p-4">
             <p className="text-sm font-semibold text-[#344054]">{statusMessage}</p>
@@ -330,12 +341,66 @@ export function TahfidzStudentScorePage() {
         )}
 
         {isMasterLoading ? (
-          <div className="mt-5 flex items-center justify-center rounded-2xl border border-[#EAECF0] bg-white py-10 text-sm font-semibold text-[#667085]">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Memuat master penilaian...
+          <div className="mt-5 space-y-4 rounded-2xl border border-[#EAECF0] bg-white p-5">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-12 rounded-xl" />
+              <Skeleton className="h-12 rounded-xl" />
+            </div>
+            <Skeleton className="h-12 w-full rounded-xl" />
           </div>
         ) : (
           <>
+            <div className="mt-5 rounded-2xl border border-[#EAECF0] bg-white p-4 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+              <FormLabel>Kategori Setoran</FormLabel>
+              <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  disabled={readonly}
+                  onClick={() => {
+                    if (kategoriTahfidz === "ziyadah") return;
+                    setKategoriTahfidz("ziyadah");
+                    setSelectedSurah(null);
+                    setSelectedAyatAwal(null);
+                    setSelectedAyatAkhir(null);
+                    setLanjutSurah(false);
+                    setSelectedSurahLanjutan(null);
+                  }}
+                  className={`flex items-center justify-center gap-2 rounded-xl py-3 px-3 text-xs sm:text-sm font-bold transition active:scale-[0.98] ${
+                    kategoriTahfidz === "ziyadah"
+                      ? "bg-[#288DE5] text-white shadow-md shadow-[#288DE5]/20 ring-2 ring-[#288DE5] ring-offset-1"
+                      : "bg-[#F2F4F7] text-[#475467] hover:bg-[#E4E7EC]"
+                  } ${readonly ? "opacity-90 cursor-not-allowed" : ""}`}
+                >
+                  <span className={`h-2.5 w-2.5 rounded-full ${kategoriTahfidz === "ziyadah" ? "bg-white" : "bg-[#288DE5]"}`} />
+                  Ziyadah (Tambah)
+                </button>
+
+                <button
+                  type="button"
+                  disabled={readonly}
+                  onClick={() => {
+                    if (kategoriTahfidz === "murojaah") return;
+                    setKategoriTahfidz("murojaah");
+                    setSelectedSurah(null);
+                    setSelectedAyatAwal(null);
+                    setSelectedAyatAkhir(null);
+                    setLanjutSurah(false);
+                    setSelectedSurahLanjutan(null);
+                  }}
+                  className={`flex items-center justify-center gap-2 rounded-xl py-3 px-3 text-xs sm:text-sm font-bold transition active:scale-[0.98] ${
+                    kategoriTahfidz === "murojaah"
+                      ? "bg-[#12B76A] text-white shadow-md shadow-[#12B76A]/20 ring-2 ring-[#12B76A] ring-offset-1"
+                      : "bg-[#F2F4F7] text-[#475467] hover:bg-[#E4E7EC]"
+                  } ${readonly ? "opacity-90 cursor-not-allowed" : ""}`}
+                >
+                  <span className={`h-2.5 w-2.5 rounded-full ${kategoriTahfidz === "murojaah" ? "bg-white" : "bg-[#12B76A]"}`} />
+                  Murojaah (Ulang)
+                </button>
+              </div>
+            </div>
+
             <div className="mt-5">
               <FormLabel>Surah</FormLabel>
               <SimpleSelect
@@ -546,14 +611,34 @@ function FormLabel({ children }: { children: ReactNode }) {
   return <p className="mb-2 text-sm font-medium text-[#344054]">{children}</p>;
 }
 
-function TahfidzTerakhirCard({ value }: { value: string }) {
+function TahfidzTerakhirCard({
+  tahfidzTerakhir,
+  totalHafalan,
+}: {
+  tahfidzTerakhir?: string;
+  totalHafalan?: string;
+}) {
   return (
     <div className="mt-4 rounded-2xl border border-[#B3E0FF] bg-[#F0F9FF] p-4 shadow-[0_2px_8px_rgba(40,141,229,0.08)]">
-      <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[#288DE5]">
-        <BookOpen className="h-4 w-4" />
-        <span>Tahfidz Terakhir</span>
-      </div>
-      <p className="text-base font-semibold leading-relaxed text-[#101828]">{value}</p>
+      {totalHafalan && (
+        <div>
+          <div className="mb-1 flex items-center gap-2 text-sm font-bold text-[#288DE5]">
+            <BookOpen className="h-4 w-4" />
+            <span>Total Hafalan</span>
+          </div>
+          <p className="text-base font-semibold leading-relaxed text-[#101828]">{totalHafalan}</p>
+        </div>
+      )}
+
+      {tahfidzTerakhir && (
+        <div className={totalHafalan ? "mt-4" : ""}>
+          <div className="mb-1 flex items-center gap-2 text-sm font-bold text-[#288DE5]">
+            <BookOpen className="h-4 w-4" />
+            <span>Tahfidz Terakhir</span>
+          </div>
+          <p className="text-base font-semibold leading-relaxed text-[#101828]">{tahfidzTerakhir}</p>
+        </div>
+      )}
     </div>
   );
 }

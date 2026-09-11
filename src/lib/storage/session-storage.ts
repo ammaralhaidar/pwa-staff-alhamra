@@ -4,6 +4,10 @@ export type StoredProfile = {
   full_name?: string;
   username?: string;
   email?: string;
+  avatar?: string;
+  avatar_128?: string;
+  companyId?: number;
+  company_id?: number;
   login?: string;
   role?: string;
   role_name?: string;
@@ -23,6 +27,17 @@ export const USER_STORAGE_KEY = "alhamra:user";
 export const LOGIN_RESULT_KEY = "alhamra:login-result";
 export const LEGACY_SESSION_KEY = "alhamra:session";
 export const ODOO_SESSION_KEY = "alhamra:odoo-session";
+export const LAST_ACTIVE_ROLE_ROUTE_KEY = "alhamra:last-active-role-route";
+
+const ROLE_DASHBOARD_ROUTES = new Set([
+  "/guru-quran",
+  "/guru-akademik",
+  "/musyrif",
+  "/keamanan",
+  "/pelanggaran",
+  "/pelanggaran/pendidik",
+  "/kesantrian/perijinan",
+]);
 
 const SESSION_KEYS = [
   "alhamra:auth-session",
@@ -49,6 +64,8 @@ export function resolveStoredProfile() {
       return {
         name: nested.name || nested.nama || nested.full_name || nested.username,
         email: nested.email || nested.login,
+        avatar: nested.avatar || nested.avatar_128,
+        companyId: nested.companyId || nested.company_id,
         role: nested.role || nested.role_name || nested.job_title,
         hasSessionData: true,
       };
@@ -89,7 +106,18 @@ export function resolveStoredRoleFlags() {
 }
 
 export function hasStoredAuthSession() {
-  return Boolean(localStorage.getItem(ODOO_SESSION_KEY) || localStorage.getItem(AUTH_SESSION_KEY));
+  return Boolean(sessionStorage.getItem(ODOO_SESSION_KEY) || localStorage.getItem(ODOO_SESSION_KEY) || localStorage.getItem(AUTH_SESSION_KEY));
+}
+
+export function persistLastActiveRoleRoute(pathname: string) {
+  if (ROLE_DASHBOARD_ROUTES.has(pathname)) {
+    localStorage.setItem(LAST_ACTIVE_ROLE_ROUTE_KEY, pathname);
+  }
+}
+
+export function getLastActiveRoleRoute() {
+  const pathname = localStorage.getItem(LAST_ACTIVE_ROLE_ROUTE_KEY);
+  return pathname && ROLE_DASHBOARD_ROUTES.has(pathname) ? pathname : null;
 }
 
 export function persistAuthSession<T extends { session?: StoredProfile }>(result: T) {
@@ -109,6 +137,7 @@ export function persistAuthSession<T extends { session?: StoredProfile }>(result
   localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(normalizedResult));
   localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(normalizedSession));
   localStorage.setItem(LOGIN_RESULT_KEY, JSON.stringify(normalizedResult));
+  localStorage.removeItem(LAST_ACTIVE_ROLE_ROUTE_KEY);
 
   return normalizedResult;
 }
@@ -117,6 +146,22 @@ export function clearAuthSession() {
   for (const key of SESSION_KEYS) {
     localStorage.removeItem(key);
   }
+  localStorage.removeItem(LAST_ACTIVE_ROLE_ROUTE_KEY);
+  sessionStorage.removeItem(ODOO_SESSION_KEY);
+
+  // Dummy data is user-scoped during development and must not leak to the next login.
+  for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+    const key = localStorage.key(index);
+    if (key?.startsWith("alhamra:guru-akademik:")) localStorage.removeItem(key);
+  }
+
+  void clearPrivateRuntimeCaches();
+}
+
+async function clearPrivateRuntimeCaches() {
+  if (!("caches" in window)) return;
+  const keys = await caches.keys();
+  await Promise.all(keys.filter((key) => /api|runtime|data/i.test(key)).map((key) => caches.delete(key)));
 }
 
 export function initialsFromName(name: string, fallback = "U") {

@@ -1,10 +1,14 @@
 export type RoleKey =
   | "is_guru_quran"
+  | "is_academic_teacher"
   | "is_musyrif"
   | "is_petugas_keamanan"
   | "is_petugas_pelanggaran"
   | "is_petugas_pelanggaran_pendidik"
-  | "is_manajer_kesantrian";
+  | "is_manajer_kesantrian"
+  | "can_manage_pengumuman"
+  | "is_pengumuman_staff"
+  | "is_pengumuman_manager";
 
 export type RoleIconName =
   | "book"
@@ -14,7 +18,8 @@ export type RoleIconName =
   | "trophy"
   | "alert"
   | "heart"
-  | "admin";
+  | "admin"
+  | "megaphone";
 
 export type AppRole = {
   title: string;

@@ -1,9 +1,15 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { Briefcase, ChevronRight, HelpCircle, Key, LogOut, Mail, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { appQueryClient } from "@/app/providers/app-providers";
 
 import { InfoRow } from "@/components/data-display/info-row";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { authApi } from "@/features/auth/infrastructure/auth-api";
 import { clearAuthSession, initialsFromName, resolveStoredProfile } from "@/lib/storage";
+import { ChangePasswordDialog } from "@/shared/presentation/components/change-password-dialog";
 
 interface RoleProfilePageProps {
   title: string;
@@ -25,15 +31,24 @@ export function RoleProfilePage({
   fallbackNotice = "Data session pengguna belum lengkap. Menampilkan fallback sementara.",
 }: RoleProfilePageProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isAvatarBroken, setIsAvatarBroken] = useState(false);
   const storedProfile = resolveStoredProfile();
   const name = storedProfile.name || fallbackName;
   const email = storedProfile.email || fallbackEmail;
-  const roleLabel = storedProfile.role || role;
+  const roleLabel = role;
   const initials = initialsFromName(name, fallbackInitial);
+  const avatarSource = storedProfile.avatar ? `data:image/*;base64,${storedProfile.avatar}` : undefined;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await authApi.logout().catch(() => undefined);
+    appQueryClient.clear();
     clearAuthSession();
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -45,11 +60,8 @@ export function RoleProfilePage({
         <div className="pointer-events-none absolute right-8 bottom-4 h-32 w-32 rounded-full bg-white/10" />
 
         <h1 className="relative z-10 w-full self-start text-left text-lg font-bold">{title}</h1>
-        <div
-          className="relative z-10 mt-2 flex h-24 w-24 items-center justify-center rounded-full border-4 border-white text-3xl font-medium text-white shadow-md"
-          style={{ backgroundColor: avatarColor }}
-        >
-          {initials}
+        <div className="relative z-10 mt-2 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-white text-3xl font-medium text-white shadow-md" style={{ backgroundColor: avatarColor }}>
+          {avatarSource && !isAvatarBroken ? <img src={avatarSource} alt={`Foto ${name}`} className="h-full w-full object-cover" onError={() => setIsAvatarBroken(true)} /> : initials}
         </div>
         <h2 className="relative z-10 mt-4 text-xl font-bold">{name}</h2>
         <p className="relative z-10 mt-1 text-xs font-medium text-white/70">{roleLabel}</p>
@@ -73,21 +85,33 @@ export function RoleProfilePage({
         <section className="mb-8">
           <SectionTitle>Pengaturan</SectionTitle>
           <div className="mt-2 rounded-2xl border border-[#EAECF0] bg-white px-2 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-            <SettingRow icon={<Key className="h-5 w-5 text-[#288DE5]" />} label="Ubah Password" />
+            <SettingRow icon={<Key className="h-5 w-5 text-[#288DE5]" />} label="Ubah Password" onClick={() => setIsChangePasswordOpen(true)} />
             <div className="mx-4 h-px bg-gray-100" />
-            <SettingRow icon={<HelpCircle className="h-5 w-5 text-[#288DE5]" />} label="Bantuan" />
+            <SettingRow
+              icon={<HelpCircle className="h-5 w-5 text-[#288DE5]" />}
+              label="Bantuan"
+              onClick={() => navigate("/help", { state: { from: location.pathname } })}
+            />
           </div>
         </section>
 
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={() => setIsLogoutOpen(true)}
           className="flex w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-[#EF4444] bg-white py-3.5 text-base font-semibold text-[#EF4444] transition active:scale-[0.98] active:bg-red-50"
         >
           <LogOut className="h-5 w-5" />
           Keluar
         </button>
       </main>
+      <ChangePasswordDialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen} onSuccess={handleLogout} />
+      <Dialog open={isLogoutOpen} onOpenChange={setIsLogoutOpen}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-[360px] rounded-[22px] p-5" showCloseButton={!isLoggingOut}>
+          <DialogTitle className="text-center text-[18px] font-bold text-slate-900">Konfirmasi Logout</DialogTitle>
+          <DialogDescription className="text-center leading-relaxed">Apakah Anda yakin ingin keluar dari akun ini?</DialogDescription>
+          <div className="mt-4 grid grid-cols-2 gap-3"><Button variant="outline" disabled={isLoggingOut} onClick={() => setIsLogoutOpen(false)} className="h-11 rounded-xl">Batal</Button><Button disabled={isLoggingOut} onClick={() => void handleLogout()} className="h-11 rounded-xl bg-red-500 hover:bg-red-600">{isLoggingOut ? "Keluar..." : "Keluar"}</Button></div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -101,9 +125,9 @@ function SectionTitle({ children }: { children: string }) {
   );
 }
 
-function SettingRow({ icon, label }: { icon: ReactNode; label: string }) {
+function SettingRow({ icon, label, onClick }: { icon: ReactNode; label: string; onClick?: () => void }) {
   return (
-    <button type="button" className="flex w-full items-center gap-4 rounded-xl px-4 py-3.5 text-left transition active:bg-gray-50">
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-4 rounded-xl px-4 py-3.5 text-left transition active:bg-gray-50">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F0F9FF]">{icon}</div>
       <span className="flex-1 text-[15px] font-semibold text-[#344054]">{label}</span>
       <ChevronRight className="h-5 w-5 text-[#98A2B3]" />

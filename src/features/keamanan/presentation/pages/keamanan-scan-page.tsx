@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Camera, Keyboard, QrCode, VideoOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -9,73 +9,271 @@ import { useScanSecurityStudent } from "../../application/keamanan-queries";
 import type { KeamananScanResult } from "../../domain/keamanan-types";
 import { KeamananHeader } from "../components/keamanan-header";
 
+type Html5ScannerInstance = {
+  start: (
+    cameraConfig: { facingMode: string },
+    config: { fps: number },
+    onSuccess: (decodedText: string) => void,
+    onError: (errorMessage: string) => void,
+  ) => Promise<void>;
+  stop: () => Promise<void>;
+  clear: () => void;
+};
+
+type Html5QrcodeConstructor = new (
+  elementId: string,
+  config?: { formatsToSupport?: unknown[] },
+) => Html5ScannerInstance;
+
+type NativeBarcode = {
+  rawValue?: string;
+  format?: string;
+};
+
+type NativeBarcodeDetector = {
+  detect: (source: HTMLVideoElement) => Promise<NativeBarcode[]>;
+};
+
+type NativeBarcodeDetectorConstructor = {
+  new (options?: { formats?: string[] }): NativeBarcodeDetector;
+  getSupportedFormats?: () => Promise<string[]>;
+};
+
+type WindowWithBarcodeDetector = Window & {
+  BarcodeDetector?: NativeBarcodeDetectorConstructor;
+};
+
 function navigateByResult(navigate: ReturnType<typeof useNavigate>, result: KeamananScanResult) {
   const permissionId = result.permission.permissionId || getPerijinanId(result.permission);
   if (!permissionId) {
-    toast.error("Data perizinan dari QR tidak lengkap. Coba scan ulang atau gunakan input manual.");
+    toast.error("Data perizinan dari barcode tidak lengkap. Coba scan ulang atau gunakan input manual.");
     return;
   }
   const path = result.actionType === "checkin" ? `/keamanan/checkin/${permissionId}` : `/keamanan/checkout/${permissionId}`;
   navigate(path, { state: { permission: result.permission } });
 }
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  return "Tidak diketahui";
+}
+
+async function waitForReaderSize(element: HTMLElement, attempts = 12) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const width = element.clientWidth;
+    const height = element.clientHeight;
+    if (width > 0 && height > 0) return { width, height };
+    await new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => resolve());
+    });
+  }
+  return { width: element.clientWidth, height: element.clientHeight };
+}
+
+function forceScannerPreviewLayout(element: HTMLElement) {
+  const nodes = element.querySelectorAll<HTMLElement>("video, canvas, img, div");
+  nodes.forEach((node) => {
+    node.style.maxWidth = "100%";
+  });
+
+  element.querySelectorAll<HTMLElement>("video, canvas").forEach((node) => {
+    node.style.width = "100%";
+    node.style.height = "100%";
+    node.style.objectFit = "cover";
+    node.style.display = "block";
+    node.style.borderRadius = "1.5rem";
+  });
+}
+
+async function safeStopScanner(scanner: Html5ScannerInstance | null) {
+  if (!scanner) return;
+  try {
+    await scanner.stop();
+  } catch {
+    // html5-qrcode throws when stop is called before the camera is fully running.
+  }
+  try {
+    scanner.clear();
+  } catch {
+    // Ignore DOM cleanup errors from the scanner; React owns the page shell.
+  }
+}
+
+function clearReaderHost(element: HTMLElement | null) {
+  try {
+    element?.replaceChildren();
+  } catch {
+    // Ignore cleanup errors from scanner-owned DOM.
+  }
+}
+
 export function KeamananScanPage() {
   const navigate = useNavigate();
-  const scannerRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
+  const readerId = `keamanan-reader-${useId().replace(/:/g, "")}`;
+  const readerHostRef = useRef<HTMLDivElement | null>(null);
+  const scannerRef = useRef<Html5ScannerInstance | null>(null);
+  const nativeBarcodeIntervalRef = useRef<number | null>(null);
+  const nativeDetectInFlightRef = useRef(false);
   const lastScanRef = useRef<{ value: string; time: number } | null>(null);
   const isProcessingRef = useRef(false);
+  const isStartingRef = useRef(false);
+  const isRunningRef = useRef(false);
   const [cameraError, setCameraError] = useState("");
   const [isCameraActive, setIsCameraActive] = useState(false);
   const scanMutation = useScanSecurityStudent();
+  const scanMutationRef = useRef(scanMutation);
+  const handleDecodedBarcodeRef = useRef<(decodedText: string, source: string) => void>(() => undefined);
 
   useEffect(() => {
+    scanMutationRef.current = scanMutation;
+  }, [scanMutation]);
+
+  useEffect(() => {
+    handleDecodedBarcodeRef.current = (decodedText) => {
+      const now = Date.now();
+      const lastScan = lastScanRef.current;
+      if (isProcessingRef.current || (lastScan?.value === decodedText && now - lastScan.time < 2_000)) return;
+      isProcessingRef.current = true;
+      lastScanRef.current = { value: decodedText, time: now };
+      scanMutationRef.current.mutate(decodedText, {
+        onSuccess: (result) => {
+          setIsCameraActive(false);
+          navigateByResult(navigate, result);
+        },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : "Barcode tidak ditemukan atau izin tidak aktif.");
+        },
+        onSettled: () => {
+          isProcessingRef.current = false;
+        },
+      });
+    };
+  }, [navigate]);
+
+  const stopNativeBarcodeLoop = () => {
+    if (nativeBarcodeIntervalRef.current !== null) {
+      window.clearInterval(nativeBarcodeIntervalRef.current);
+      nativeBarcodeIntervalRef.current = null;
+    }
+    nativeDetectInFlightRef.current = false;
+  };
+
+  useEffect(() => {
+    const readerHost = readerHostRef.current;
     if (!isCameraActive) {
+      stopNativeBarcodeLoop();
       // Clean up camera if deactivated
       const scanner = scannerRef.current;
       if (scanner) {
-        scanner.stop().then(() => scanner.clear()).catch(() => undefined);
         scannerRef.current = null;
+        isRunningRef.current = false;
+        isStartingRef.current = false;
+        void safeStopScanner(scanner).finally(() => clearReaderHost(readerHost));
+      } else {
+        clearReaderHost(readerHost);
       }
       return;
     }
 
     let active = true;
+    async function startNativeBarcodeLoop() {
+      stopNativeBarcodeLoop();
+      const BarcodeDetector = (window as WindowWithBarcodeDetector).BarcodeDetector;
+      if (!BarcodeDetector) return;
+
+      const requestedFormats = ["code_128", "qr_code"];
+      let supportedFormats: string[] = [];
+      try {
+        supportedFormats = (await BarcodeDetector.getSupportedFormats?.()) ?? [];
+      } catch {
+        supportedFormats = [];
+      }
+
+      const formats = supportedFormats.length
+        ? requestedFormats.filter((format) => supportedFormats.includes(format))
+        : requestedFormats;
+
+      if (!formats.length) return;
+
+      const detector = new BarcodeDetector({ formats });
+      const detect = async () => {
+        if (!active || !isRunningRef.current || isProcessingRef.current || nativeDetectInFlightRef.current) return;
+        const video = readerHostRef.current?.querySelector("video");
+        if (!video || video.readyState < 2 || video.videoWidth <= 0 || video.videoHeight <= 0) {
+          return;
+        }
+
+        nativeDetectInFlightRef.current = true;
+        try {
+          const results = await detector.detect(video);
+          if (results.length) {
+            const rawValue = results.find((item) => item.rawValue)?.rawValue;
+            if (rawValue) handleDecodedBarcodeRef.current(rawValue, "barcode-detector");
+            return;
+          }
+        } catch {
+          // Native BarcodeDetector can fail per frame; html5-qrcode remains active.
+        } finally {
+          nativeDetectInFlightRef.current = false;
+        }
+      };
+
+      nativeBarcodeIntervalRef.current = window.setInterval(() => {
+        void detect();
+      }, 350);
+      void detect();
+    }
+
     async function startScanner() {
+      if (isStartingRef.current || isRunningRef.current) return;
+      isStartingRef.current = true;
       try {
         setCameraError("");
-        const { Html5Qrcode } = await import("html5-qrcode");
+        await new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() => resolve());
+        });
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
         if (!active) return;
-        const scanner = new Html5Qrcode("keamanan-reader");
+        if (!readerHostRef.current) throw new Error("Container scanner belum tersedia.");
+        const readerSize = await waitForReaderSize(readerHostRef.current);
+        if (readerSize.width <= 0 || readerSize.height <= 0) {
+          throw new Error("Area scanner belum punya ukuran. Coba refresh halaman lalu aktifkan kamera lagi.");
+        }
+        const formatsToSupport = [
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.QR_CODE,
+        ];
+        clearReaderHost(readerHostRef.current);
+        const ScannerConstructor = Html5Qrcode as unknown as Html5QrcodeConstructor;
+        const scanner = new ScannerConstructor(readerId, {
+          formatsToSupport,
+        });
         scannerRef.current = scanner;
         await scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 240, height: 240 } },
+          { fps: 12 },
           (decodedText) => {
-            const now = Date.now();
-            const lastScan = lastScanRef.current;
-            if (isProcessingRef.current || (lastScan?.value === decodedText && now - lastScan.time < 2_000)) return;
-            isProcessingRef.current = true;
-            lastScanRef.current = { value: decodedText, time: now };
-            scanMutation.mutate(decodedText, {
-              onSuccess: (result) => {
-                // Turn off camera before navigation
-                setIsCameraActive(false);
-                navigateByResult(navigate, result);
-              },
-              onError: (error) => toast.error(error instanceof Error ? error.message : "QR tidak ditemukan atau izin tidak aktif."),
-              onSettled: () => {
-                isProcessingRef.current = false;
-              },
-            });
+            handleDecodedBarcodeRef.current(decodedText, "html5-qrcode");
           },
           () => undefined,
         );
-      } catch {
+        isRunningRef.current = true;
+        if (readerHostRef.current) {
+          forceScannerPreviewLayout(readerHostRef.current);
+          window.setTimeout(() => {
+            if (readerHostRef.current) forceScannerPreviewLayout(readerHostRef.current);
+          }, 250);
+        }
+        await startNativeBarcodeLoop();
+      } catch (error) {
         if (active) {
           const secureHint = window.isSecureContext ? "" : " Browser perlu HTTPS atau localhost untuk membuka kamera.";
-          setCameraError(`Kamera tidak bisa dibuka.${secureHint} Pakai input manual untuk melanjutkan.`);
+          setCameraError(`Kamera tidak bisa dibuka. ${getErrorMessage(error)}.${secureHint} Pakai input manual untuk melanjutkan.`);
           setIsCameraActive(false);
         }
+      } finally {
+        isStartingRef.current = false;
       }
     }
 
@@ -83,12 +281,18 @@ export function KeamananScanPage() {
 
     return () => {
       active = false;
+      stopNativeBarcodeLoop();
       const scanner = scannerRef.current;
       if (scanner) {
-        scanner.stop().then(() => scanner.clear()).catch(() => undefined);
+        scannerRef.current = null;
+        isRunningRef.current = false;
+        isStartingRef.current = false;
+        void safeStopScanner(scanner).finally(() => clearReaderHost(readerHost));
+      } else {
+        clearReaderHost(readerHost);
       }
     };
-  }, [isCameraActive, navigate, scanMutation]);
+  }, [isCameraActive, navigate, readerId]);
 
   return (
     <div className="relative mx-auto flex min-h-svh w-screen max-w-[430px] flex-col bg-white">
@@ -114,37 +318,21 @@ export function KeamananScanPage() {
           <p className="mt-1.5 text-[13px] font-medium text-slate-500 leading-relaxed ml-2">
             Sistem akan otomatis mendeteksi apakah santri akan checkout atau checkin berdasarkan status perizinan.
           </p>
-          {import.meta.env.DEV ? (
-            <div className="flex gap-2 mt-3 ml-2 border-t border-blue-100/50 pt-3">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="text-[11px] font-bold h-8 px-3 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 border-none"
-                onClick={() => navigate("/keamanan/checkout/1")}
-              >
-                Dev: Go Checkout
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="text-[11px] font-bold h-8 px-3 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none"
-                onClick={() => navigate("/keamanan/checkin/1")}
-              >
-                Dev: Go Checkin
-              </Button>
-            </div>
-          ) : null}
         </Card>
 
         {/* Scanner Container Card */}
         <Card className="relative overflow-hidden rounded-[32px] border border-slate-100 bg-[#F8FAFC] p-6 shadow-sm mt-4">
-          <div
-            id="keamanan-reader"
-            className="relative flex aspect-square w-full flex-col items-center justify-center overflow-hidden rounded-3xl bg-[#F8FAFC]"
-          >
-            {/* Custom overlays for scan area when inactive */}
+          <div className="relative flex aspect-square w-full flex-col items-center justify-center overflow-hidden rounded-3xl bg-[#F8FAFC]">
+            <div
+              id={readerId}
+              ref={readerHostRef}
+              aria-hidden={!isCameraActive}
+              className={`absolute inset-0 min-h-full min-w-full overflow-hidden rounded-3xl bg-slate-950 transition-opacity [&_canvas]:!h-full [&_canvas]:!w-full [&_canvas]:!object-cover [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover ${isCameraActive ? "opacity-100" : "pointer-events-none opacity-0"}`}
+            />
+
+            {/* Placeholder scanner saat kamera mati */}
             {!isCameraActive ? (
-              <div className="flex flex-col items-center justify-center px-6 text-center space-y-4">
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center space-y-4 px-6 text-center">
                 <QrCode className="size-28 text-slate-300 stroke-[1.2]" />
                 <p className="text-[14px] font-medium text-slate-400 max-w-[240px]">
                   Arahkan kamera ke QR Code pada Kartu Tanda Santri
@@ -173,7 +361,10 @@ export function KeamananScanPage() {
       <div className="fixed bottom-0 left-1/2 z-30 w-screen max-w-[430px] -translate-x-1/2 border-t border-slate-100 bg-white px-4 py-4">
         <div className="space-y-3">
           <Button
-            onClick={() => setIsCameraActive((prev) => !prev)}
+            onClick={() => {
+              setCameraError("");
+              setIsCameraActive((prev) => !prev);
+            }}
             className={`h-14 w-full rounded-2xl text-base font-extrabold transition shadow-md ${
               isCameraActive
                 ? "bg-red-600 hover:bg-red-700 text-white"

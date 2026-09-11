@@ -1,5 +1,6 @@
 import type {
   AttendanceSession,
+  AttendanceStatus,
   Ayat,
   CreateAttendanceResult,
   GuruQuranStudent,
@@ -8,6 +9,7 @@ import type {
   Sesi,
   StudentAssessmentStatus,
   Surah,
+  TahfidzCategory,
   TahfidzDraftDetail,
   TahfidzHistoryDetail,
   TahfidzStudent,
@@ -178,7 +180,18 @@ export function mapAttendanceSession(value: unknown): AttendanceSession {
   const sesi = record(raw.sesi);
   const ustadz = record(raw.ustadz);
   const statusText = text(raw.status, raw.state, raw.status_penilaian).toLowerCase();
-  const isDone = raw.is_done === true || statusText === "done" || statusText === "selesai";
+
+  const totalCount = numberValue(raw.jumlah_siswa, raw.jumlah_santri, raw.jumlah_items, raw.jumlahItems, arrayFrom(raw.absen_lines).length);
+  const doneCount = numberValue(raw.done_count, raw.doneCount, raw.jumlah_selesai);
+
+  let status: AttendanceStatus = "draft";
+  if (statusText === "done" || statusText === "selesai" || (totalCount > 0 && doneCount === totalCount)) {
+    status = "done";
+  } else if (statusText === "partial" || statusText === "proses" || doneCount > 0) {
+    status = "partial";
+  } else {
+    status = "draft";
+  }
 
   return {
     id,
@@ -189,8 +202,9 @@ export function mapAttendanceSession(value: unknown): AttendanceSession {
     ustadzId: numberValue(ustadz.id, raw.ustadz_id),
     ustadzName: text(ustadz.name, raw.ustadz_name, raw.ustadz, "Ustadz"),
     tanggal: dateText(raw.tanggal ?? raw.date),
-    jumlahSiswa: numberValue(raw.jumlah_siswa, raw.jumlah_santri, raw.jumlah_items, raw.jumlahItems, arrayFrom(raw.absen_lines).length),
-    status: isDone ? "done" : "draft",
+    jumlahSiswa: totalCount,
+    doneCount,
+    status,
     raw,
   };
 }
@@ -200,20 +214,26 @@ export function mapAttendanceList(raw: unknown): AttendanceSession[] {
 }
 
 export function mapTahfidzStudents(raw: unknown): TahfidzStudent[] {
-  return arrayFrom(unwrapOdooData(raw)).map((item) => {
-    const status = text(item.status, item.statusPenilaian).toLowerCase();
-    const normalizedStatus: StudentAssessmentStatus = status === "done" ? "done" : status === "pending" ? "pending" : "draft";
-    return {
-      tahfidzId: numberValue(item.tahfidz_id, item.id),
-      studentId: numberValue(item.siswa_id, item.student_id, item.santri_id, item.santriId),
-      studentName: text(item.siswa_name, item.student_name, item.santri_name, item.nama, item.name, "Santri"),
-      nis: text(item.nis) || undefined,
-      kelas: text(item.kelas) || undefined,
-      status: normalizedStatus,
-      summaryHafalan: text(item.summary_hafalan, item.hafalan, item.last_tahfidz) || undefined,
-      raw: item,
-    };
-  }).filter((item) => item.tahfidzId > 0);
+  return arrayFrom(unwrapOdooData(raw))
+    .map((item) => {
+      const status = text(item.status, item.statusPenilaian).toLowerCase();
+      const normalizedStatus: StudentAssessmentStatus = status === "done" ? "done" : status === "pending" ? "pending" : "draft";
+      const kategoriRaw = text(item.kategori_tahfidz, item.kategoriTahfidz).toLowerCase();
+      const kategoriTahfidz: TahfidzCategory = kategoriRaw === "murojaah" ? "murojaah" : "ziyadah";
+      return {
+        tahfidzId: numberValue(item.tahfidz_id, item.id),
+        studentId: numberValue(item.siswa_id, item.student_id, item.santri_id, item.santriId),
+        studentName: text(item.siswa_name, item.student_name, item.santri_name, item.nama, item.name, "Santri"),
+        nis: text(item.nis) || undefined,
+        kelas: text(item.kelas) || undefined,
+        status: normalizedStatus,
+        summaryHafalan: text(item.summary_hafalan, item.hafalan, item.last_tahfidz) || undefined,
+        kategoriTahfidz,
+        raw: item,
+      };
+    })
+    .filter((item) => item.tahfidzId > 0)
+    .sort((a, b) => a.studentName.localeCompare(b.studentName, "id", { sensitivity: "base" }));
 }
 
 export function mapTahfidzDraftDetail(rawValue: unknown, tahfidzId: number): TahfidzDraftDetail | null {
@@ -223,10 +243,13 @@ export function mapTahfidzDraftDetail(rawValue: unknown, tahfidzId: number): Tah
 
   const currentSurah = record(source.current_surah);
   const currentAyatAwal = record(source.current_ayat_awal);
+  const kategoriRaw = text(source.kategori_tahfidz, source.kategoriTahfidz).toLowerCase();
 
   return {
     tahfidzId,
     lastTahfidz: text(source.last_tahfidz) || undefined,
+    totalHafalanSiswa: text(source.total_hafalan_siswa) || undefined,
+    kategoriTahfidz: kategoriRaw === "murojaah" ? "murojaah" : "ziyadah",
     currentSurah: currentSurah.id || currentSurah.name ? {
       id: numberValue(currentSurah.id),
       name: text(currentSurah.name, "-"),
@@ -244,9 +267,11 @@ export function mapTahfidzDraftDetail(rawValue: unknown, tahfidzId: number): Tah
 export function mapTahfidzHistoryDetail(rawValue: unknown, tahfidzId: number): TahfidzHistoryDetail | null {
   const source = record(unwrapOdooData(rawValue));
   if (Object.keys(source).length === 0) return null;
+  const kategoriRaw = text(source.kategori_tahfidz, source.kategoriTahfidz).toLowerCase();
 
   return {
     tahfidzId,
+    totalHafalanSiswa: text(source.total_hafalan_siswa) || undefined,
     surah: text(source.surah) || undefined,
     surah2: text(source.surah2, source.surah_2) || undefined,
     ayatAwal: numberValue(source.ayat_awal) || undefined,
@@ -256,6 +281,7 @@ export function mapTahfidzHistoryDetail(rawValue: unknown, tahfidzId: number): T
     jmlBaris: numberValue(source.jml_baris) || undefined,
     keterangan: text(source.keterangan) || undefined,
     isChangeSurah: source.is_change_surah === true,
+    kategoriTahfidz: kategoriRaw === "murojaah" ? "murojaah" : "ziyadah",
     raw: source,
   };
 }
