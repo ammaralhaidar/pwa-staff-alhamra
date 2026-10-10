@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, ChevronDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { addLocalTahfidzSession } from "../../application/guru-quran-storage";
+import { addLocalTahfidzSession, resolveSmartDefaultHalaqoh } from "../../application/guru-quran-storage";
 import {
   useConfirmTahfidzAttendance,
   useCreateTahfidzAttendance,
@@ -12,12 +12,15 @@ import {
 } from "../../application/guru-quran-queries";
 import type { AttendancePresence, GuruQuranStudent, Halaqoh, Sesi, Ustadz } from "../../domain/guru-quran-types";
 import { GuruQuranHeader } from "../components/guru-quran-header";
+import { resolveStoredProfile } from "@/lib/storage";
 
 const KEHADIRAN_OPTIONS = ["Setor", "Tidak Setor"] as const;
 
 export function CreateTahfidzAttendancePage() {
   const navigate = useNavigate();
   const halaqohQuery = useHalaqohList();
+  const halaqohList = useMemo(() => halaqohQuery.data ?? [], [halaqohQuery.data]);
+  const userProfile = useMemo(() => resolveStoredProfile(), []);
   const sesiQuery = useSesiList();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedHalaqoh, setSelectedHalaqoh] = useState<Halaqoh | null>(null);
@@ -49,6 +52,15 @@ export function CreateTahfidzAttendancePage() {
     setAttendanceMap(next);
     setSelectedUstadz(halaqoh.ustadz[0] ?? null);
   }
+
+  useEffect(() => {
+    if (!selectedHalaqoh && halaqohList.length > 0) {
+      const defaultHalaqoh = resolveSmartDefaultHalaqoh(halaqohList, userProfile.name);
+      if (defaultHalaqoh) {
+        handleHalaqohSelect(defaultHalaqoh);
+      }
+    }
+  }, [halaqohList, selectedHalaqoh, userProfile.name]);
 
   const isLoading = halaqohQuery.isLoading || sesiQuery.isLoading;
   const isSubmitting = createMutation.isPending || confirmMutation.isPending;

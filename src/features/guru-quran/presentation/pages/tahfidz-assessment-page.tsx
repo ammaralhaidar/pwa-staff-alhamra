@@ -2,6 +2,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ArrowLeft, Users, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHalaqohList, useTahfidzHistorySessions, useTahfidzStudents } from "../../application/guru-quran-queries";
+import { getSavedHalaqohId } from "../../application/guru-quran-storage";
 import type { AttendanceSession, TahfidzStudent } from "../../domain/guru-quran-types";
 
 export function TahfidzAssessmentPage() {
@@ -11,12 +12,14 @@ export function TahfidzAssessmentPage() {
   const routeSession = (location.state as { session?: AttendanceSession })?.session;
   const absenId = Number(attendanceId) || 0;
   const halaqohQuery = useHalaqohList();
-  const activeHalaqoh = halaqohQuery.data?.[0];
-  const activeHalaqohId = routeSession?.halaqohId || activeHalaqoh?.id;
+  const halaqohList = halaqohQuery.data ?? [];
+  const savedHalaqohId = getSavedHalaqohId();
+  const activeHalaqohId = routeSession?.halaqohId || savedHalaqohId || halaqohList[0]?.id;
+  const currentHalaqoh = halaqohList.find((h) => h.id === activeHalaqohId) ?? halaqohList[0];
   const sessionsQuery = useTahfidzHistorySessions(activeHalaqohId);
   const studentsQuery = useTahfidzStudents(absenId);
   const fetchedSession = sessionsQuery.data?.find((item) => item.id === absenId);
-  const session = enrichSessionWithHalaqoh(fetchedSession ?? routeSession, activeHalaqoh);
+  const session = enrichSessionWithHalaqoh(fetchedSession ?? routeSession, currentHalaqoh);
 
   const halaqohName = session?.halaqohName ?? "-";
   const sesiName = session?.sesiName ?? "-";
