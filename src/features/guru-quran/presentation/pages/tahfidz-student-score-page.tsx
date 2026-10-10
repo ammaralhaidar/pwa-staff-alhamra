@@ -26,6 +26,7 @@ import {
   useTahfidzHistorySessions,
   useTahfidzStudents,
 } from "../../application/guru-quran-queries";
+import { getSavedHalaqohId } from "../../application/guru-quran-storage";
 import type {
   AttendanceSession,
   Ayat,
@@ -60,16 +61,18 @@ export function TahfidzStudentScorePage() {
   const [readonly, setReadonly] = useState(false);
 
   const halaqohQuery = useHalaqohList();
-  const activeHalaqoh = halaqohQuery.data?.[0];
-  const activeHalaqohId = routeState.session?.halaqohId || activeHalaqoh?.id;
+  const halaqohList = halaqohQuery.data ?? [];
+  const savedHalaqohId = getSavedHalaqohId();
+  const activeHalaqohId = routeState.session?.halaqohId || savedHalaqohId || halaqohList[0]?.id;
+  const currentHalaqoh = halaqohList.find((h) => h.id === activeHalaqohId) ?? halaqohList[0];
   const sessionsQuery = useTahfidzHistorySessions(activeHalaqohId);
   const studentsQuery = useTahfidzStudents(absenId);
   const sesiQuery = useSesiList();
   const fetchedSession = sessionsQuery.data?.find((item) => item.id === absenId);
-  const session = enrichSessionWithHalaqoh(fetchedSession ?? routeState.session, activeHalaqoh);
+  const session = enrichSessionWithHalaqoh(fetchedSession ?? routeState.session, currentHalaqoh);
   const student = routeState.student ?? studentsQuery.data?.find((item) => item.tahfidzId === tahfidzId);
   const isDoneStudent = student?.status === "done";
-  const resolvedHalaqohId = session?.halaqohId || activeHalaqoh?.id;
+  const resolvedHalaqohId = session?.halaqohId || currentHalaqoh?.id;
   const resolvedSesiId = session?.sesiId || findSesiIdByName(sesiQuery.data ?? [], session?.sesiName);
   const resolvedTanggal = session?.tanggal;
 
