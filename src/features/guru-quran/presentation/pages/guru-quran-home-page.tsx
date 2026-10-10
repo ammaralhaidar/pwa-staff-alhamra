@@ -3,11 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { AlertCircle, BookOpen, ChevronDown, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { mergeTahfidzSessions } from "../../application/guru-quran-storage";
+import {
+  getSavedHalaqohId,
+  mergeTahfidzSessions,
+  resolveSmartDefaultHalaqoh,
+  setSavedHalaqohId,
+} from "../../application/guru-quran-storage";
 import { useHalaqohList, useTahfidzHistorySessions, useTahfidzStudents } from "../../application/guru-quran-queries";
-import type { AttendanceSession, AttendanceStatus } from "../../domain/guru-quran-types";
+import type { AttendanceSession, AttendanceStatus, Halaqoh } from "../../domain/guru-quran-types";
 import { GuruQuranHeader } from "../components/guru-quran-header";
 import { AttendanceSessionCard } from "../components/attendance-session-card";
+import { HalaqohSelector } from "../components/halaqoh-selector";
+import { resolveStoredProfile } from "@/lib/storage";
 
 const FILTER_WAKTU_OPTIONS = ["Hari Ini", "7 Hari", "30 Hari", "Semua"] as const;
 const FILTER_STATUS_OPTIONS = ["Semua", "Belum Disimak", "Disimak Sebagian", "Selesai"] as const;
@@ -20,10 +27,34 @@ export function GuruQuranHomePage() {
   const [filterWaktu, setFilterWaktu] = useState<FilterWaktu>("Hari Ini");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("Semua");
   const [completionStatus, setCompletionStatus] = useState<Record<number, AttendanceStatus>>({});
+  const [selectedHalaqohId, setSelectedHalaqohId] = useState<number | null>(() => getSavedHalaqohId());
 
   const halaqohQuery = useHalaqohList();
-  const activeHalaqoh = halaqohQuery.data?.[0];
+  const halaqohList = useMemo(() => halaqohQuery.data ?? [], [halaqohQuery.data]);
+  const userProfile = useMemo(() => resolveStoredProfile(), []);
+
+  const activeHalaqoh = useMemo(() => {
+    if (halaqohList.length === 0) return undefined;
+    if (selectedHalaqohId) {
+      const found = halaqohList.find((h) => h.id === selectedHalaqohId);
+      if (found) return found;
+    }
+    return resolveSmartDefaultHalaqoh(halaqohList, userProfile.name);
+  }, [halaqohList, userProfile.name, selectedHalaqohId]);
+
+  useEffect(() => {
+    if (activeHalaqoh && activeHalaqoh.id !== selectedHalaqohId) {
+      setSelectedHalaqohId(activeHalaqoh.id);
+      setSavedHalaqohId(activeHalaqoh.id);
+    }
+  }, [activeHalaqoh, selectedHalaqohId]);
+
   const sessionsQuery = useTahfidzHistorySessions(activeHalaqoh?.id);
+
+  function handleSelectHalaqoh(halaqoh: Halaqoh) {
+    setSelectedHalaqohId(halaqoh.id);
+    setSavedHalaqohId(halaqoh.id);
+  }
 
   const sessions = useMemo(
     () => mergeTahfidzSessions(sessionsQuery.data ?? []).map((session) => enrichSessionWithHalaqoh(session, activeHalaqoh)),
@@ -74,7 +105,17 @@ export function GuruQuranHomePage() {
     <div className="flex flex-col">
       <GuruQuranHeader title="Beranda Guru Qur'an" />
 
-      <div className="flex items-center justify-between gap-3 px-5 py-4">
+      {halaqohList.length > 0 && (
+        <div className="px-5 pt-4">
+          <HalaqohSelector
+            halaqohList={halaqohList}
+            selectedHalaqohId={activeHalaqoh?.id}
+            onSelectHalaqoh={handleSelectHalaqoh}
+          />
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-3 px-5 py-3">
         <FilterDropdown value={filterWaktu} options={[...FILTER_WAKTU_OPTIONS]} onChange={(value) => setFilterWaktu(value as FilterWaktu)} />
         <FilterDropdown value={filterStatus} options={[...FILTER_STATUS_OPTIONS]} onChange={(value) => setFilterStatus(value as FilterStatus)} />
       </div>
