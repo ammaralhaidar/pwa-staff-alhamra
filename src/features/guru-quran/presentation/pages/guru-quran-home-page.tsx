@@ -178,19 +178,27 @@ function CompletionAwareSessionCard({
 
   const { computedStatus, computedDoneCount, computedTotalCount } = useMemo(() => {
     const students = studentsQuery.data;
-    if (!students || students.length === 0) {
+    if (studentsQuery.isSuccess && (!students || students.length === 0)) {
       return {
-        computedStatus: session.status,
+        computedStatus: "done" as AttendanceStatus,
+        computedDoneCount: 0,
+        computedTotalCount: 0,
+      };
+    }
+    if (!students || students.length === 0) {
+      const isZero = session.jumlahSiswa === 0;
+      return {
+        computedStatus: (isZero ? "done" : session.status) as AttendanceStatus,
         computedDoneCount: session.doneCount ?? 0,
         computedTotalCount: session.jumlahSiswa,
       };
     }
     const total = students.length;
     const done = students.filter((s) => s.status === "done").length;
-    const status: AttendanceStatus = total > 0 && done === total ? "done" : done > 0 ? "partial" : "draft";
+    const status: AttendanceStatus = total === 0 || done === total ? "done" : done > 0 ? "partial" : "draft";
 
     return { computedStatus: status, computedDoneCount: done, computedTotalCount: total };
-  }, [session.doneCount, session.jumlahSiswa, session.status, studentsQuery.data]);
+  }, [session.doneCount, session.jumlahSiswa, session.status, studentsQuery.data, studentsQuery.isSuccess]);
 
   useEffect(() => {
     if (studentsQuery.data) onStatusChange(computedStatus);
