@@ -13,6 +13,7 @@ import {
 import type { AttendancePresence, GuruQuranStudent, Halaqoh, Sesi, Ustadz } from "../../domain/guru-quran-types";
 import { GuruQuranHeader } from "../components/guru-quran-header";
 import { resolveStoredProfile } from "@/lib/storage";
+import { cn } from "@/lib/utils";
 
 const KEHADIRAN_OPTIONS = ["Setor", "Tidak Setor"] as const;
 
@@ -67,6 +68,16 @@ export function CreateTahfidzAttendancePage() {
 
   function handleKehadiranChange(siswaId: number, value: AttendancePresence) {
     setAttendanceMap((current) => ({ ...current, [siswaId]: value }));
+  }
+
+  function handleSetAllKehadiran(status: AttendancePresence) {
+    if (siswaList.length === 0) return;
+    const next: Record<number, AttendancePresence> = {};
+    siswaList.forEach((student) => {
+      next[student.id] = status;
+    });
+    setAttendanceMap(next);
+    toast.success(`Semua siswa diatur ke: ${status}`);
   }
 
   async function handleSubmit() {
@@ -164,9 +175,33 @@ export function CreateTahfidzAttendancePage() {
           </div>
         </div>
 
-        <div className="mb-1 flex items-center justify-between px-1">
-          <p className="text-base font-bold text-[#101828]">Daftar Siswa</p>
-          <span className="rounded-full bg-[#E0F2FE] px-2.5 py-0.5 text-xs font-bold text-[#0EA5E9]">{siswaList.length} Siswa</span>
+        <div className="flex flex-col gap-2.5 px-1">
+          <div className="flex items-center justify-between">
+            <p className="text-base font-bold text-[#101828]">Daftar Siswa</p>
+            <span className="rounded-full bg-[#E0F2FE] px-2.5 py-0.5 text-xs font-bold text-[#0EA5E9]">{siswaList.length} Siswa</span>
+          </div>
+
+          {siswaList.length > 0 && (
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-[#EAECF0] bg-white p-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+              <span className="text-xs font-semibold text-[#475467] pl-1">Aksi Cepat:</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSetAllKehadiran("Setor")}
+                  className="rounded-lg border border-[#BAE6FD] bg-[#F0F9FF] px-2.5 py-1 text-xs font-bold text-[#0284C7] transition active:scale-95 hover:bg-[#E0F2FE]"
+                >
+                  Setor Semua
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetAllKehadiran("Tidak Setor")}
+                  className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-2.5 py-1 text-xs font-bold text-[#DC2626] transition active:scale-95 hover:bg-[#FEE2E2]"
+                >
+                  Tidak Setor Semua
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {selectedHalaqoh && siswaList.length === 0 ? (
@@ -264,37 +299,75 @@ function SiswaCard({
   onChangeKehadiran: (value: AttendancePresence) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const isTidakSetor = kehadiran === "Tidak Setor";
 
   return (
     <div className="rounded-2xl border border-[#EAECF0] bg-white p-4 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E0F2FE] text-sm font-bold text-[#0284C7]">{no}</div>
+        <div
+          className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold transition-colors",
+            isTidakSetor
+              ? "bg-[#FEE2E2] text-[#DC2626]"
+              : "bg-[#E0F2FE] text-[#0284C7]"
+          )}
+        >
+          {no}
+        </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-bold text-[#101828]">{siswa.name}</p>
           <p className="text-xs font-medium text-[#98A2B3]">NIS: {siswa.nis ?? "-"}</p>
         </div>
         <div className="relative">
-          <button type="button" onClick={() => setOpen((current) => !current)} className="flex items-center gap-1 rounded-full bg-[#F0F9FF] px-3 py-1.5 text-xs font-bold text-[#288DE5]">
+          <button
+            type="button"
+            onClick={() => setOpen((current) => !current)}
+            className={cn(
+              "flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-bold transition-all active:scale-95",
+              isTidakSetor
+                ? "border-[#FECACA] bg-[#FEF2F2] text-[#DC2626]"
+                : "border-[#BAE6FD] bg-[#F0F9FF] text-[#288DE5]"
+            )}
+          >
             {kehadiran}
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown
+              className={cn(
+                "h-3 w-3",
+                isTidakSetor ? "text-[#EF4444]" : "text-[#288DE5]"
+              )}
+            />
           </button>
           {open ? (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-              <div className="absolute right-0 z-20 mt-2 w-32 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-xl">
-                {KEHADIRAN_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => {
-                      onChangeKehadiran(option);
-                      setOpen(false);
-                    }}
-                    className="block w-full px-3 py-2 text-left text-xs font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600"
-                  >
-                    {option}
-                  </button>
-                ))}
+              <div className="absolute right-0 z-20 mt-2 w-36 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-xl">
+                {KEHADIRAN_OPTIONS.map((option) => {
+                  const isOptionTidakSetor = option === "Tidak Setor";
+                  const isSelected = option === kehadiran;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => {
+                        onChangeKehadiran(option);
+                        setOpen(false);
+                      }}
+                      className={cn(
+                        "block w-full px-3 py-2 text-left text-xs font-bold transition-colors",
+                        isOptionTidakSetor
+                          ? "hover:bg-red-50 hover:text-red-600"
+                          : "hover:bg-blue-50 hover:text-blue-600",
+                        isSelected
+                          ? isOptionTidakSetor
+                            ? "bg-red-50 text-red-600 font-extrabold"
+                            : "bg-blue-50 text-[#288DE5] font-extrabold"
+                          : "text-slate-600"
+                      )}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
               </div>
             </>
           ) : null}
