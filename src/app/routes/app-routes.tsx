@@ -37,6 +37,8 @@ const PerijinanDetailPage = lazy(async () => ({ default: (await import("@/featur
 const PerijinanFormPage = lazy(async () => ({ default: (await import("@/features/kesantrian/presentation/pages/perijinan-form-page")).PerijinanFormPage }));
 const KesantrianPelanggaranHomePage = lazy(async () => ({ default: (await import("@/features/kesantrian/presentation/pages/pelanggaran-home-page")).PelanggaranHomePage }));
 const KesantrianPelanggaranDetailPage = lazy(async () => ({ default: (await import("@/features/kesantrian/presentation/pages/pelanggaran-detail-page")).PelanggaranDetailPage }));
+const KesantrianSantriListPage = lazy(async () => ({ default: (await import("@/features/kesantrian/presentation/pages/kesantrian-santri-list-page")).KesantrianSantriListPage }));
+const KesantrianSantriDetailPage = lazy(async () => ({ default: (await import("@/features/kesantrian/presentation/pages/kesantrian-santri-detail-page")).KesantrianSantriDetailPage }));
 const KesantrianProfilePage = lazy(async () => ({ default: (await import("@/features/kesantrian/presentation/pages/kesantrian-profile-page")).KesantrianProfilePage }));
 
 const PelanggaranDashboardPage = lazy(async () => ({ default: (await import("@/features/pelanggaran/presentation/pages/pelanggaran-dashboard-page")).PelanggaranDashboardPage }));
@@ -110,8 +112,10 @@ export function AppRoutes() {
         <Route index element={<KesantrianIndexRedirect />} />
         <Route path="perijinan" element={<PerijinanHomePage />} />
         <Route path="pelanggaran" element={<KesantrianPelanggaranHomePage />} />
+        <Route path="santri" element={<KesantrianSantriListPage />} />
         <Route path="profile" element={<KesantrianProfilePage />} />
       </Route>
+      <Route path="/kesantrian/santri/:santriId" element={<ProtectedRoute allowedRoles={["is_manajer_kesantrian"]}><KesantrianSantriDetailPage /></ProtectedRoute>} />
       <Route path="/kesantrian/perijinan/tambah" element={<ProtectedRoute allowedRoles={["is_manajer_kesantrian"]}><PerijinanFormPage /></ProtectedRoute>} />
       <Route path="/kesantrian/perijinan/:izinId" element={<ProtectedRoute allowedRoles={["is_manajer_kesantrian"]}><PerijinanDetailPage /></ProtectedRoute>} />
       <Route path="/kesantrian/pelanggaran/tambah" element={<ProtectedRoute allowedRoles={["is_manajer_kesantrian"]}><RolePelanggaranFormPage accessType="kesantrian" /></ProtectedRoute>} />
