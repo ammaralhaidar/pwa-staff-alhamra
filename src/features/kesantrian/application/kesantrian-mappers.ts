@@ -1,4 +1,6 @@
 import type {
+  KesantrianStudent,
+  KesantrianStudentListResponse,
   Pelanggaran,
   PelanggaranStatus,
   Perijinan,
@@ -290,4 +292,32 @@ function generateReference(prefix: string, id: number, date: string) {
   const yy = Number.isNaN(parsed.getTime()) ? "00" : String(parsed.getFullYear()).slice(-2);
   const mm = Number.isNaN(parsed.getTime()) ? "00" : String(parsed.getMonth() + 1).padStart(2, "0");
   return `${prefix}/${yy}.${mm}/${String(id).padStart(4, "0")}`;
+}
+
+export function mapKesantrianStudentList(raw: unknown): KesantrianStudentListResponse {
+  const unwrapped = (unwrapOdooData(raw) ?? {}) as Record<string, unknown>;
+  const siswaRaw = Array.isArray(unwrapped.siswa) ? (unwrapped.siswa as Record<string, unknown>[]) : [];
+  const kamarOptions = Array.isArray(unwrapped.kamar_options)
+    ? (unwrapped.kamar_options as string[])
+    : [];
+  const kelasOptions = Array.isArray(unwrapped.kelas_options)
+    ? (unwrapped.kelas_options as string[])
+    : [];
+
+  const siswa: KesantrianStudent[] = siswaRaw.map((item) => ({
+    id: Number(item.id ?? 0),
+    name: String(item.name ?? "-"),
+    nis: String(item.nis ?? "-"),
+    kelas: String(item.kelas ?? "-"),
+    kamar: String(item.kamar ?? "-"),
+    saldoUangSaku: Number(item.saldo_uang_saku ?? 0),
+    saldoDompet: Number(item.saldo_dompet ?? 0),
+  }));
+
+  return {
+    siswa,
+    kamarOptions,
+    kelasOptions,
+    totalSiswa: Number(unwrapped.total_siswa ?? siswa.length),
+  };
 }

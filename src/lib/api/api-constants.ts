@@ -50,6 +50,7 @@ export const apiEndpoints = {
     managerPerizinanList: "/api/v2/manager/perizinan/list",
     managerPerizinanDetail: "/api/v2/manager/perizinan/detail",
     managerPerizinanDecide: "/api/v2/manager/perizinan/decide",
+    siswaList: "/api/v2/kesantrian/siswa/list",
   },
   musyrif: {
     perizinanList: "/api/v2/musyrif/perizinan/list",

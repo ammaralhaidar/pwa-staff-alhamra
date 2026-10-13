@@ -99,7 +99,7 @@ export function PelanggaranDetailPage() {
   }
 
   return (
-    <div className="relative mx-auto flex h-svh max-w-[430px] flex-col bg-[#EFF6FF]">
+    <div className="relative mx-auto flex h-svh w-full max-w-[430px] flex-col overflow-x-hidden bg-[#EFF6FF]">
       {/* Sticky Header */}
       <div className="shrink-0 z-40">
         <KesantrianHeader title="Detail Pelanggaran" description={detail?.reference} onBack={() => navigate("/kesantrian/pelanggaran")} />
@@ -107,7 +107,7 @@ export function PelanggaranDetailPage() {
 
       {/* Scrollable Container */}
       <div className="flex-1 overflow-y-auto pb-24">
-        <section className="mx-auto max-w-md space-y-4 px-4 py-5">
+        <section className="mx-auto w-full max-w-md space-y-4 px-4 py-5">
           {isInvalidId ? (
             <StateMessage title="ID pelanggaran tidak valid" description="Buka ulang data dari halaman daftar pelanggaran." />
           ) : null}

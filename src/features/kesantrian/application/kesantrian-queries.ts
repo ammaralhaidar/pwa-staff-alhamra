@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   cancelPelanggaran,
+  changeKesantrianStudentPin,
   createPerijinan,
   decidePelanggaran,
   decidePerijinan,
+  fetchKesantrianStudentDetail,
+  fetchKesantrianStudents,
   fetchPelanggaranDetail,
   fetchPelanggaranList,
   fetchPerijinanDetail,
@@ -11,8 +14,10 @@ import {
   fetchTindakanOptions,
   processPelanggaran,
   searchPelanggaranStudents,
+  topupKesantrianWallet,
 } from "../api/kesantrian-api";
 import type { PelanggaranListParams, PerijinanListParams, StudentSearchParams } from "../domain/kesantrian-types";
+import type { ChangePinPayload, TopupPayload } from "@/features/musyrif/domain/musyrif-types";
 
 export const kesantrianKeys = {
   all: ["kesantrian"] as const,
@@ -24,6 +29,8 @@ export const kesantrianKeys = {
   pelanggaranDetail: (id: number) => [...kesantrianKeys.pelanggaran(), "detail", id] as const,
   tindakan: () => [...kesantrianKeys.pelanggaran(), "tindakan"] as const,
   students: (params?: StudentSearchParams) => [...kesantrianKeys.all, "students", params ?? {}] as const,
+  santriList: () => [...kesantrianKeys.all, "santri-list"] as const,
+  santriDetail: (id: number) => [...kesantrianKeys.all, "santri-detail", id] as const,
 };
 
 function normalizeListParams<T extends { state?: string }>(params?: string | T): T | undefined {
@@ -136,5 +143,41 @@ export function useStudentSearch(params?: string | StudentSearchParams) {
     queryFn: () => searchPelanggaranStudents(normalizedParams),
     enabled: true,
     staleTime: 60 * 1000,
+  });
+}
+
+export function useKesantrianStudents() {
+  return useQuery({
+    queryKey: kesantrianKeys.santriList(),
+    queryFn: () => fetchKesantrianStudents(),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useKesantrianStudentDetail(santriId: number) {
+  return useQuery({
+    queryKey: kesantrianKeys.santriDetail(santriId),
+    queryFn: () => fetchKesantrianStudentDetail(santriId),
+    enabled: santriId > 0,
+  });
+}
+
+export function useTopupKesantrianWallet() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: TopupPayload) => topupKesantrianWallet(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: kesantrianKeys.santriList() });
+    },
+  });
+}
+
+export function useChangeKesantrianPin() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ChangePinPayload) => changeKesantrianStudentPin(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: kesantrianKeys.santriList() });
+    },
   });
 }

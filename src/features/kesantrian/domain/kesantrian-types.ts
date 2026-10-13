@@ -190,3 +190,23 @@ export type KesantrianApiError = {
   message: string;
   unauthorized?: boolean;
 };
+
+export type KesantrianStudent = {
+  id: number;
+  name: string;
+  nis: string;
+  kelas: string;
+  kamar: string;
+  saldoUangSaku: number;
+  saldoDompet: number;
+};
+
+export type KesantrianStudentListResponse = {
+  siswa: KesantrianStudent[];
+  kamarOptions: string[];
+  kelasOptions: string[];
+  totalSiswa: number;
+};
+
+export type SaldoFilter = "all" | "low" | "empty";
+
