@@ -4,6 +4,7 @@ import type {
   CancelPelanggaranPayload,
   CreatePerijinanPayload,
   DecidePelanggaranPayload,
+  KesantrianStudentListResponse,
   Pelanggaran,
   PelanggaranListParams,
   Perijinan,
@@ -16,6 +17,7 @@ import type {
 } from "../domain/kesantrian-types";
 import {
   assertOdooSuccess,
+  mapKesantrianStudentList,
   mapPelanggaran,
   mapPelanggaranList,
   mapPerijinan,
@@ -24,6 +26,12 @@ import {
   mapTindakanList,
   toRecord,
 } from "../application/kesantrian-mappers";
+import {
+  topupWallet as topupKesantrianWallet,
+  changeStudentPin as changeKesantrianStudentPin,
+  fetchMusyrifStudentDetail as fetchKesantrianStudentDetail,
+  fetchWalletBalance as fetchKesantrianWalletBalance,
+} from "@/features/musyrif/api/musyrif-api";
 
 function compactPayload(payload: Record<string, unknown>) {
   return Object.fromEntries(
@@ -134,3 +142,16 @@ export async function searchPelanggaranStudents(params?: string | StudentSearchP
   assertOdooSuccess(res);
   return mapStudentOptions(res);
 }
+
+export async function fetchKesantrianStudents(): Promise<KesantrianStudentListResponse> {
+  const res = await postOdoo<unknown>(apiEndpoints.kesantrian.siswaList, {});
+  assertOdooSuccess(res);
+  return mapKesantrianStudentList(res);
+}
+
+export {
+  topupKesantrianWallet,
+  changeKesantrianStudentPin,
+  fetchKesantrianStudentDetail,
+  fetchKesantrianWalletBalance,
+};
